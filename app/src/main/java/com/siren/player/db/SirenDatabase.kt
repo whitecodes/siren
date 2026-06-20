@@ -78,7 +78,8 @@ data class Song(
     val albumCid: String,
     val artists: String,
     val status: DownloadStatus = DownloadStatus.NOT_DOWNLOADED,
-    val localPath: String? = null
+    val localPath: String? = null,
+    val order: Int = 0
 )
 
 @Dao
@@ -101,7 +102,7 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE albumCid = :albumCid")
     fun getAlbumSongs(albumCid: String): kotlinx.coroutines.flow.Flow<List<Song>>
 
-    @Query("SELECT * FROM songs WHERE albumCid = :albumCid")
+    @Query("SELECT * FROM songs WHERE albumCid = :albumCid ORDER BY `order` DESC")
     suspend fun getAlbumSongsList(albumCid: String): List<Song>
 
     @Query("SELECT localPath FROM songs WHERE cid = :cid LIMIT 1")
@@ -204,10 +205,17 @@ val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
     }
 }
 
+// ---- Database Migration 2 -> 3 (add order column to songs) ----
+val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE songs ADD COLUMN `order` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 // ---- Database ----
 @Database(
     entities = [Album::class, Song::class, DownloadTask::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class SirenDatabase : RoomDatabase() {
@@ -222,7 +230,7 @@ abstract class SirenDatabase : RoomDatabase() {
                 SirenDatabase::class.java,
                 "siren_cache.db"
             )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
         }

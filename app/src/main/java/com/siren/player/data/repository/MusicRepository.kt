@@ -51,11 +51,11 @@ class MusicRepository(context: Context) {
 
     // Get album songs from cache first, then network if empty
     suspend fun getAlbumSongs(albumCid: String, forceRefresh: Boolean = false): List<SongInfo> = withContext(Dispatchers.IO) {
-        val songs = if (!forceRefresh) {
+        if (!forceRefresh) {
             val cachedCount = songDao.countAlbumSongs(albumCid)
             if (cachedCount > 0) {
                 val cached = songDao.getAlbumSongsList(albumCid)
-                cached.map { song ->
+                return@withContext cached.map { song ->
                     SongInfo(
                         cid = song.cid,
                         name = song.name,
@@ -63,20 +63,13 @@ class MusicRepository(context: Context) {
                         artists = song.artists.split(",")
                     )
                 }
-            } else {
-                // Fetch from network and cache
-                val networkSongs = SirenApi.getAlbumSongs(albumCid)
-                saveSongs(networkSongs)
-                networkSongs
             }
-        } else {
-            // Force refresh from network
-            val networkSongs = SirenApi.getAlbumSongs(albumCid)
-            saveSongs(networkSongs)
-            networkSongs
         }
-        // Return in reverse order
-        songs.reversed()
+        // Fetch from network and cache
+        val networkSongs = SirenApi.getAlbumSongs(albumCid)
+        saveSongs(networkSongs)
+        // Return in reverse order (database stores original order, query uses DESC)
+        networkSongs.reversed()
     }
 
     // Get album detail with intro
@@ -151,13 +144,14 @@ class MusicRepository(context: Context) {
     }
 
     suspend fun saveSongs(songs: List<SongInfo>) {
-        songs.forEach { song ->
+        songs.forEachIndexed { index, song ->
             songDao.insert(
                 Song(
                     cid = song.cid,
                     name = song.name,
                     albumCid = song.albumCid,
-                    artists = song.artists.joinToString(",")
+                    artists = song.artists.joinToString(","),
+                    order = index
                 )
             )
         }
