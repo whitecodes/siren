@@ -119,6 +119,10 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun getCachedPath(cid: String): String? = repository.getCachedPath(cid)
 
+    suspend fun clearCache() {
+        repository.clearCache()
+    }
+
     fun clearError() {
         _error.value = null
     }

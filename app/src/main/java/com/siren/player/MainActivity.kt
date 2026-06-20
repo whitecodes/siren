@@ -65,6 +65,8 @@ import com.siren.player.ui.screens.AlbumListScreen
 import com.siren.player.ui.screens.DownloadQueueScreen
 import com.siren.player.ui.screens.PlaylistScreen
 import com.siren.player.ui.screens.PlayerScreen
+import com.siren.player.ui.screens.SettingsScreen
+import com.siren.player.ui.screens.AboutScreen
 import com.siren.player.ui.theme.SirenTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -273,30 +275,6 @@ fun SirenApp(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun SettingsScreen(viewModel: SirenViewModel) {
-    // Placeholder - will be implemented in T1.7
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("设置", style = MaterialTheme.typography.headlineMedium)
-        Text("功能开发中...", style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-fun AboutScreen() {
-    // Placeholder - will be implemented in T1.7
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("关于", style = MaterialTheme.typography.headlineMedium)
-        Text("塞壬唱片 v1.0", style = MaterialTheme.typography.bodyLarge)
     }
 }
 
