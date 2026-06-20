@@ -207,6 +207,24 @@ class MusicService : Service() {
     val repeatMode: Int get() = exoPlayer?.repeatMode ?: Player.REPEAT_MODE_OFF
     val shuffleModeEnabled: Boolean get() = exoPlayer?.shuffleModeEnabled == true
 
+    fun getPlaylist(): List<Pair<String, String>> {
+        val player = exoPlayer ?: return emptyList()
+        return (0 until player.mediaItemCount).map { index ->
+            val item = player.getMediaItemAt(index)
+            val title = item.mediaMetadata.title?.toString() ?: "Unknown"
+            val uri = item.localConfiguration?.uri?.toString() ?: ""
+            uri to title
+        }
+    }
+
+    fun skipToIndex(index: Int) {
+        val player = exoPlayer ?: return
+        if (index in 0 until player.mediaItemCount) {
+            player.seekTo(index.toLong())
+            player.play()
+        }
+    }
+
     override fun onDestroy() {
         mediaSession?.run {
             player.release()

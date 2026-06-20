@@ -62,6 +62,7 @@ import com.siren.player.ui.SirenViewModel
 import com.siren.player.ui.navigation.NavigationItem
 import com.siren.player.ui.screens.AlbumDetailScreen
 import com.siren.player.ui.screens.AlbumListScreen
+import com.siren.player.ui.screens.PlaylistScreen
 import com.siren.player.ui.screens.PlayerScreen
 import com.siren.player.ui.theme.SirenTheme
 import kotlinx.coroutines.CoroutineScope
@@ -271,18 +272,6 @@ fun SirenApp(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun PlaylistScreen(musicService: MusicService?) {
-    // Placeholder - will be implemented in T1.5
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("播放列表", style = MaterialTheme.typography.headlineMedium)
-        Text("功能开发中...", style = MaterialTheme.typography.bodyLarge)
     }
 }
 
