@@ -16,29 +16,40 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,16 +58,17 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.siren.player.data.api.SirenApi
 import com.siren.player.player.MusicService
+import com.siren.player.ui.SirenViewModel
+import com.siren.player.ui.navigation.NavigationItem
+import com.siren.player.ui.screens.AlbumDetailScreen
+import com.siren.player.ui.screens.AlbumListScreen
+import com.siren.player.ui.screens.PlayerScreen
+import com.siren.player.ui.theme.SirenTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import com.siren.player.ui.SirenViewModel
-import com.siren.player.ui.screens.AlbumDetailScreen
-import com.siren.player.ui.screens.AlbumListScreen
-import com.siren.player.ui.screens.PlayerScreen
-import com.siren.player.ui.theme.SirenTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -165,6 +177,9 @@ fun SirenApp(
     val viewModel: SirenViewModel = viewModel()
     var selectedAlbumCid by remember { mutableStateOf<String?>(null) }
     var showPlayer by remember { mutableStateOf(false) }
+    var currentNavItem by remember { mutableStateOf(NavigationItem.Album) }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
     if (showPlayer && musicService != null) {
         PlayerScreen(
@@ -174,34 +189,136 @@ fun SirenApp(
         return
     }
 
-    Scaffold(
-        bottomBar = {
-            MiniPlayerBar(
-                musicService = musicService,
-                onClick = { showPlayer = true }
-            )
-        }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            when {
-                selectedAlbumCid != null -> {
-                    AlbumDetailScreen(
-                        viewModel = viewModel,
-                        onBack = { selectedAlbumCid = null },
-                        onPlaySong = onPlaySong
-                    )
-                }
-                else -> {
-                    AlbumListScreen(
-                        viewModel = viewModel,
-                        onAlbumClick = { albumCid ->
-                            selectedAlbumCid = albumCid
-                            viewModel.openAlbum(albumCid)
-                        }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "塞壬唱片",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(16.dp)
+                )
+                NavigationItem.entries.forEach { item ->
+                    NavigationDrawerItem(
+                        icon = { Icon(item.icon, contentDescription = item.title) },
+                        label = { Text(item.title) },
+                        selected = currentNavItem == item,
+                        onClick = {
+                            currentNavItem = item
+                            selectedAlbumCid = null
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
                 }
             }
         }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(currentNavItem.title) },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "菜单")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+            },
+            bottomBar = {
+                MiniPlayerBar(
+                    musicService = musicService,
+                    onClick = { showPlayer = true }
+                )
+            }
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                when (currentNavItem) {
+                    NavigationItem.Album -> {
+                        if (selectedAlbumCid != null) {
+                            AlbumDetailScreen(
+                                viewModel = viewModel,
+                                onBack = { selectedAlbumCid = null },
+                                onPlaySong = onPlaySong
+                            )
+                        } else {
+                            AlbumListScreen(
+                                viewModel = viewModel,
+                                onAlbumClick = { albumCid ->
+                                    selectedAlbumCid = albumCid
+                                    viewModel.openAlbum(albumCid)
+                                }
+                            )
+                        }
+                    }
+                    NavigationItem.Playlist -> {
+                        PlaylistScreen(musicService = musicService)
+                    }
+                    NavigationItem.DownloadQueue -> {
+                        DownloadQueueScreen(viewModel = viewModel)
+                    }
+                    NavigationItem.Settings -> {
+                        SettingsScreen(viewModel = viewModel)
+                    }
+                    NavigationItem.About -> {
+                        AboutScreen()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlaylistScreen(musicService: MusicService?) {
+    // Placeholder - will be implemented in T1.5
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("播放列表", style = MaterialTheme.typography.headlineMedium)
+        Text("功能开发中...", style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+fun DownloadQueueScreen(viewModel: SirenViewModel) {
+    // Placeholder - will be implemented in T1.6
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("下载队列", style = MaterialTheme.typography.headlineMedium)
+        Text("功能开发中...", style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+fun SettingsScreen(viewModel: SirenViewModel) {
+    // Placeholder - will be implemented in T1.7
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("设置", style = MaterialTheme.typography.headlineMedium)
+        Text("功能开发中...", style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+fun AboutScreen() {
+    // Placeholder - will be implemented in T1.7
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("关于", style = MaterialTheme.typography.headlineMedium)
+        Text("塞壬唱片 v1.0", style = MaterialTheme.typography.bodyLarge)
     }
 }
 
