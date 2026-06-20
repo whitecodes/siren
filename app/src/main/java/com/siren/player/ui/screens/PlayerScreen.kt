@@ -1,5 +1,10 @@
 package com.siren.player.ui.screens
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MusicNote
@@ -45,7 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.siren.player.player.MusicService
@@ -66,6 +70,17 @@ fun PlayerScreen(
     var duration by remember { mutableLongStateOf(musicService?.duration ?: 0) }
     var title by remember { mutableStateOf(musicService?.currentTitle ?: "") }
     var playMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.ALBUM_STOP) }
+
+    // T1.10.7: Rotation animation for cover
+    val infiniteTransition = rememberInfiniteTransition(label = "rotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 10000, easing = LinearEasing)
+        ),
+        label = "rotation"
+    )
 
     DisposableEffect(musicService) {
         val service = musicService ?: return@DisposableEffect onDispose {}
@@ -112,9 +127,12 @@ fun PlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // T1.10.6: Remove rounded corners from cover
+            // T1.10.7: Add rotation animation when playing
             Card(
-                modifier = Modifier.size(240.dp),
-                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .size(240.dp)
+                    .rotate(if (isPlaying) rotation else 0f),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Box(
