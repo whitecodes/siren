@@ -51,11 +51,11 @@ class MusicRepository(context: Context) {
 
     // Get album songs from cache first, then network if empty
     suspend fun getAlbumSongs(albumCid: String, forceRefresh: Boolean = false): List<SongInfo> = withContext(Dispatchers.IO) {
-        if (!forceRefresh) {
+        val songs = if (!forceRefresh) {
             val cachedCount = songDao.countAlbumSongs(albumCid)
             if (cachedCount > 0) {
                 val cached = songDao.getAlbumSongsList(albumCid)
-                return@withContext cached.map { song ->
+                cached.map { song ->
                     SongInfo(
                         cid = song.cid,
                         name = song.name,
@@ -63,12 +63,20 @@ class MusicRepository(context: Context) {
                         artists = song.artists.split(",")
                     )
                 }
+            } else {
+                // Fetch from network and cache
+                val networkSongs = SirenApi.getAlbumSongs(albumCid)
+                saveSongs(networkSongs)
+                networkSongs
             }
+        } else {
+            // Force refresh from network
+            val networkSongs = SirenApi.getAlbumSongs(albumCid)
+            saveSongs(networkSongs)
+            networkSongs
         }
-        // Fetch from network and cache
-        val songs = SirenApi.getAlbumSongs(albumCid)
-        saveSongs(songs)
-        songs
+        // Return in reverse order
+        songs.reversed()
     }
 
     // Get album detail with intro
