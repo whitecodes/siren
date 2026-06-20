@@ -23,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -36,7 +37,11 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.siren.player.data.api.SongInfo
 import com.siren.player.data.download.DownloadManager
+import com.siren.player.db.DownloadStatus
 import com.siren.player.ui.SirenViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,8 +53,25 @@ fun AlbumDetailScreen(
 ) {
     val album by viewModel.currentAlbum.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val downloadedSongs = remember { mutableStateMapOf<String, Boolean>() }
+    val downloadStatus = remember { mutableStateMapOf<String, DownloadStatus>() }
     val scope = rememberCoroutineScope()
+
+    // Poll download status from database
+    DisposableEffect(album) {
+        val db = viewModel.database
+        val job = scope.launch(Dispatchers.IO) {
+            while (true) {
+                album?.songs?.forEach { song ->
+                    val songEntity = db.songDao().get(song.cid)
+                    if (songEntity != null) {
+                        downloadStatus[song.cid] = songEntity.status
+                    }
+                }
+                delay(500)
+            }
+        }
+        onDispose { job.cancel() }
+    }
 
     when {
         isLoading -> {
@@ -103,10 +125,11 @@ fun AlbumDetailScreen(
 
                 // Song list
                 itemsIndexed(album!!.songs) { index, song ->
+                    val status = downloadStatus[song.cid] ?: DownloadStatus.NOT_DOWNLOADED
                     SongItem(
                         song = song,
                         index = index,
-                        isDownloaded = downloadedSongs[song.cid] == true,
+                        downloadStatus = status,
                         onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
                         onDownload = {
                             scope.launch {
@@ -127,7 +150,7 @@ fun AlbumDetailScreen(
 fun SongItem(
     song: SongInfo,
     index: Int,
-    isDownloaded: Boolean,
+    downloadStatus: DownloadStatus,
     onPlay: () -> Unit,
     onDownload: () -> Unit
 ) {
@@ -151,24 +174,33 @@ fun SongItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        if (isDownloaded) {
-            Icon(
-                Icons.Default.Check,
-                contentDescription = "已下载",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        } else {
-            IconButton(
-                onClick = onDownload,
-                modifier = Modifier.size(32.dp)
-            ) {
+        when (downloadStatus) {
+            DownloadStatus.DOWNLOADED -> {
                 Icon(
-                    Icons.Default.Download,
-                    contentDescription = "下载",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    modifier = Modifier.size(18.dp)
+                    Icons.Default.Check,
+                    contentDescription = "已下载",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
+            }
+            DownloadStatus.DOWNLOADING -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+            else -> {
+                IconButton(
+                    onClick = onDownload,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = "下载",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
