@@ -394,7 +394,8 @@ fun SirenApp(
                         if (selectedAlbumCid != null) {
                             AlbumDetailScreen(
                                 viewModel = viewModel,
-                                onPlaySong = onPlaySong
+                                onPlaySong = onPlaySong,
+                                downloadManager = viewModel.downloadManager
                             )
                         } else {
                             AlbumListScreen(

@@ -8,6 +8,7 @@ import com.siren.player.data.api.AlbumInfo
 import com.siren.player.data.api.SirenApi
 import com.siren.player.data.api.SongDetail
 import com.siren.player.data.api.SongInfo
+import com.siren.player.data.download.DownloadManager
 import com.siren.player.data.repository.MusicRepository
 import com.siren.player.db.SirenDatabase
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,7 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = MusicRepository(application)
     val database = SirenDatabase.create(application)
+    val downloadManager = DownloadManager(application, database)
 
     private val _albums = MutableStateFlow<List<AlbumInfo>>(emptyList())
     val albums: StateFlow<List<AlbumInfo>> = _albums
