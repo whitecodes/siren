@@ -36,13 +36,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.siren.player.data.api.SongInfo
+import com.siren.player.data.download.DownloadEvent
 import com.siren.player.data.download.DownloadManager
+import com.siren.player.data.download.DownloadQueue
 import com.siren.player.db.DownloadStatus
 import com.siren.player.ui.SirenViewModel
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,20 +55,41 @@ fun AlbumDetailScreen(
     val album by viewModel.currentAlbum.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val downloadStatus = remember { mutableStateMapOf<String, DownloadStatus>() }
+    val downloadProgress = remember { mutableStateMapOf<String, Float>() }
     val scope = rememberCoroutineScope()
 
-    // Poll download status from database
+    // Initialize download status from database
     DisposableEffect(album) {
         val db = viewModel.database
-        val job = scope.launch(Dispatchers.IO) {
-            while (true) {
-                album?.songs?.forEach { song ->
-                    val songEntity = db.songDao().get(song.cid)
-                    if (songEntity != null) {
-                        downloadStatus[song.cid] = songEntity.status
+        val job = scope.launch {
+            album?.songs?.forEach { song ->
+                val songEntity = withContext(Dispatchers.IO) { db.songDao().get(song.cid) }
+                if (songEntity != null) {
+                    downloadStatus[song.cid] = songEntity.status
+                }
+            }
+        }
+        onDispose { job.cancel() }
+    }
+
+    // Observe download events
+    DisposableEffect(Unit) {
+        val job = scope.launch {
+            DownloadQueue.events.collect { event ->
+                when (event) {
+                    is DownloadEvent.Progress -> {
+                        downloadStatus[event.songCid] = DownloadStatus.DOWNLOADING
+                        downloadProgress[event.songCid] = event.progress
+                    }
+                    is DownloadEvent.Completed -> {
+                        downloadStatus[event.songCid] = DownloadStatus.DOWNLOADED
+                        downloadProgress.remove(event.songCid)
+                    }
+                    is DownloadEvent.Failed -> {
+                        downloadStatus[event.songCid] = DownloadStatus.DOWNLOAD_FAILED
+                        downloadProgress.remove(event.songCid)
                     }
                 }
-                delay(500)
             }
         }
         onDispose { job.cancel() }
@@ -81,7 +103,6 @@ fun AlbumDetailScreen(
         }
         album != null -> {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
-                // Album cover and info
                 item {
                     Column(
                         modifier = Modifier
@@ -123,13 +144,14 @@ fun AlbumDetailScreen(
                     }
                 }
 
-                // Song list
                 itemsIndexed(album!!.songs) { index, song ->
                     val status = downloadStatus[song.cid] ?: DownloadStatus.NOT_DOWNLOADED
+                    val progress = downloadProgress[song.cid]
                     SongItem(
                         song = song,
                         index = index,
                         downloadStatus = status,
+                        downloadProgress = progress,
                         onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
                         onDownload = {
                             scope.launch {
@@ -151,6 +173,7 @@ fun SongItem(
     song: SongInfo,
     index: Int,
     downloadStatus: DownloadStatus,
+    downloadProgress: Float?,
     onPlay: () -> Unit,
     onDownload: () -> Unit
 ) {
@@ -185,7 +208,8 @@ fun SongItem(
             }
             DownloadStatus.DOWNLOADING -> {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
+                    progress = { downloadProgress ?: 0f },
+                    modifier = Modifier.size(20.dp),
                     strokeWidth = 2.dp
                 )
             }

@@ -37,8 +37,8 @@ import com.siren.player.data.download.DownloadQueue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadQueueScreen() {
-    val activeTasks by DownloadQueue.activeTasks.collectAsState()
-    val completedTasks by DownloadQueue.completedTasks.collectAsState()
+    val activeTasks by DownloadQueue.activeTasks.collectAsState(initial = emptyList())
+    val completedTasks by DownloadQueue.completedTasks.collectAsState(initial = emptyList())
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),

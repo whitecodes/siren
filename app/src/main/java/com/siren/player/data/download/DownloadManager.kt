@@ -1,19 +1,17 @@
 package com.siren.player.data.download
 
 import android.content.Context
-import android.os.Environment
 import android.util.Log
 import com.siren.player.data.api.SirenApi
 import com.siren.player.data.api.SongDetail
 import com.siren.player.db.DownloadStatus
 import com.siren.player.db.SirenDatabase
-import com.siren.player.db.TaskStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -32,44 +30,60 @@ data class DownloadItem(
     val isFailed: Boolean = false
 )
 
-object DownloadQueue {
-    private val _activeTasks = MutableStateFlow<List<DownloadItem>>(emptyList())
-    val activeTasks: StateFlow<List<DownloadItem>> = _activeTasks.asStateFlow()
+sealed class DownloadEvent {
+    data class Progress(val songCid: String, val progress: Float) : DownloadEvent()
+    data class Completed(val songCid: String) : DownloadEvent()
+    data class Failed(val songCid: String) : DownloadEvent()
+}
 
-    private val _completedTasks = MutableStateFlow<List<DownloadItem>>(emptyList())
-    val completedTasks: StateFlow<List<DownloadItem>> = _completedTasks.asStateFlow()
+object DownloadQueue {
+    private val _activeTasks = MutableSharedFlow<List<DownloadItem>>(replay = 1)
+    val activeTasks: SharedFlow<List<DownloadItem>> = _activeTasks.asSharedFlow()
+
+    private val _completedTasks = MutableSharedFlow<List<DownloadItem>>(replay = 1)
+    val completedTasks: SharedFlow<List<DownloadItem>> = _completedTasks.asSharedFlow()
+
+    private val _events = MutableSharedFlow<DownloadEvent>(extraBufferCapacity = 10)
+    val events: SharedFlow<DownloadEvent> = _events.asSharedFlow()
 
     private val activeMap = ConcurrentHashMap<Long, DownloadItem>()
+    private val completedList = mutableListOf<DownloadItem>()
+
+    suspend fun emitEvent(event: DownloadEvent) {
+        _events.emit(event)
+    }
 
     fun updateProgress(id: Long, progress: Float) {
         activeMap[id]?.let { item ->
             activeMap[id] = item.copy(progress = progress)
-            _activeTasks.value = activeMap.values.toList()
+            _activeTasks.tryEmit(activeMap.values.toList())
         }
     }
 
     fun complete(id: Long) {
         activeMap.remove(id)?.let { item ->
-            _completedTasks.value = listOf(item.copy(isCompleted = true)) + _completedTasks.value
-            _activeTasks.value = activeMap.values.toList()
+            completedList.add(0, item.copy(isCompleted = true))
+            _completedTasks.tryEmit(completedList.toList())
+            _activeTasks.tryEmit(activeMap.values.toList())
         }
     }
 
     fun fail(id: Long) {
         activeMap.remove(id)?.let { item ->
-            _completedTasks.value = listOf(item.copy(isFailed = true)) + _completedTasks.value
-            _activeTasks.value = activeMap.values.toList()
+            completedList.add(0, item.copy(isFailed = true))
+            _completedTasks.tryEmit(completedList.toList())
+            _activeTasks.tryEmit(activeMap.values.toList())
         }
     }
 
     fun addTask(item: DownloadItem) {
         activeMap[item.id] = item
-        _activeTasks.value = activeMap.values.toList()
+        _activeTasks.tryEmit(activeMap.values.toList())
     }
 
     fun removeTask(id: Long) {
         activeMap.remove(id)
-        _activeTasks.value = activeMap.values.toList()
+        _activeTasks.tryEmit(activeMap.values.toList())
     }
 }
 
@@ -87,7 +101,6 @@ class DownloadManager(
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    // Use app's internal cache directory for downloads
     private val downloadDir = File(context.cacheDir, "downloads").also { it.mkdirs() }
 
     fun getDownloadPath(songCid: String, fileName: String): String {
@@ -106,7 +119,6 @@ class DownloadManager(
         )
         DownloadQueue.addTask(item)
 
-        // Ensure song record exists
         songDao.insert(
             com.siren.player.db.Song(
                 cid = song.cid,
@@ -117,7 +129,6 @@ class DownloadManager(
             )
         )
 
-        // Start download
         startDownload(taskId, song, item.albumName)
         return taskId
     }
@@ -126,12 +137,11 @@ class DownloadManager(
         val job = scope.launch {
             try {
                 songDao.updateStatus(song.cid, DownloadStatus.DOWNLOADING)
+                DownloadQueue.emitEvent(DownloadEvent.Progress(song.cid, 0f))
                 Log.d("DownloadManager", "Starting download for ${song.name}")
 
-                // Fetch fresh URL
                 val freshSong = SirenApi.getSongDetail(song.cid) ?: song
                 val url = freshSong.sourceUrl
-                Log.d("DownloadManager", "Download URL: $url")
 
                 val ext = if (url.endsWith(".wav")) ".wav" else ".mp3"
                 val fileName = "${song.name}$ext"
@@ -147,7 +157,6 @@ class DownloadManager(
 
                 val body = response.body ?: throw Exception("Empty response body")
                 val contentLength = body.contentLength()
-                Log.d("DownloadManager", "Content length: $contentLength")
 
                 file.outputStream().use { output ->
                     body.byteStream().use { input ->
@@ -157,28 +166,27 @@ class DownloadManager(
                         while (isActive && bytesRead != -1) {
                             output.write(buffer, 0, bytesRead)
                             totalRead += bytesRead
-                            // Calculate progress - handle unknown content length
                             val progress = if (contentLength > 0) {
                                 (totalRead.toFloat() / contentLength.toFloat()).coerceIn(0f, 0.99f)
                             } else {
-                                0.5f // Unknown size, show indeterminate
+                                0.5f
                             }
                             DownloadQueue.updateProgress(taskId, progress)
-                            if (totalRead % (8192 * 10) == 0L) {
-                                Log.d("DownloadManager", "Downloaded $totalRead bytes, progress: $progress")
-                            }
+                            DownloadQueue.emitEvent(DownloadEvent.Progress(song.cid, progress))
                             bytesRead = input.read(buffer)
                         }
                     }
                 }
 
                 Log.d("DownloadManager", "Download complete: $filePath")
-                DownloadQueue.complete(taskId)
                 songDao.updateLocalPath(song.cid, filePath, DownloadStatus.DOWNLOADED)
+                DownloadQueue.emitEvent(DownloadEvent.Completed(song.cid))
+                DownloadQueue.complete(taskId)
             } catch (e: Exception) {
                 Log.e("DownloadManager", "Download failed: ${e.message}", e)
-                DownloadQueue.fail(taskId)
                 songDao.updateStatus(song.cid, DownloadStatus.DOWNLOAD_FAILED)
+                DownloadQueue.emitEvent(DownloadEvent.Failed(song.cid))
+                DownloadQueue.fail(taskId)
             } finally {
                 activeJobs.remove(taskId)
             }
