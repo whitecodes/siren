@@ -1,7 +1,6 @@
 package com.siren.player.player
 
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
@@ -12,9 +11,10 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaSessionService
 import com.siren.player.MainActivity
 
-class MusicService : Service() {
+class MusicService : MediaSessionService() {
 
     private val binder = LocalBinder()
     private var exoPlayer: ExoPlayer? = null
@@ -26,8 +26,6 @@ class MusicService : Service() {
     inner class LocalBinder : Binder() {
         fun getService(): MusicService = this@MusicService
     }
-
-    override fun onBind(intent: Intent?): IBinder = binder
 
     @OptIn(UnstableApi::class)
     override fun onCreate() {
@@ -62,7 +60,12 @@ class MusicService : Service() {
             .build()
     }
 
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+        return mediaSession
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         return START_STICKY
     }
 
@@ -196,17 +199,6 @@ class MusicService : Service() {
         setPlayMode(currentPlayMode.next())
     }
 
-    val isPlaying: Boolean get() = exoPlayer?.isPlaying == true
-    val currentPosition: Long get() = exoPlayer?.currentPosition ?: 0
-    val duration: Long get() = exoPlayer?.duration?.takeIf { it > 0 } ?: 0
-    val currentMediaItemIndex: Int get() = exoPlayer?.currentMediaItemIndex ?: 0
-    val mediaItemCount: Int get() = exoPlayer?.mediaItemCount ?: 0
-    val currentTitle: String
-        get() = exoPlayer?.currentMediaItem?.mediaMetadata?.title?.toString() ?: ""
-    val playMode: PlayMode get() = currentPlayMode
-    val repeatMode: Int get() = exoPlayer?.repeatMode ?: Player.REPEAT_MODE_OFF
-    val shuffleModeEnabled: Boolean get() = exoPlayer?.shuffleModeEnabled == true
-
     fun getPlaylist(): List<Pair<String, String>> {
         val player = exoPlayer ?: return emptyList()
         return (0 until player.mediaItemCount).map { index ->
@@ -222,6 +214,24 @@ class MusicService : Service() {
         if (index in 0 until player.mediaItemCount) {
             player.seekTo(index.toLong())
             player.play()
+        }
+    }
+
+    val isPlaying: Boolean get() = exoPlayer?.isPlaying == true
+    val currentPosition: Long get() = exoPlayer?.currentPosition ?: 0
+    val duration: Long get() = exoPlayer?.duration?.takeIf { it > 0 } ?: 0
+    val currentMediaItemIndex: Int get() = exoPlayer?.currentMediaItemIndex ?: 0
+    val mediaItemCount: Int get() = exoPlayer?.mediaItemCount ?: 0
+    val currentTitle: String
+        get() = exoPlayer?.currentMediaItem?.mediaMetadata?.title?.toString() ?: ""
+    val playMode: PlayMode get() = currentPlayMode
+    val repeatMode: Int get() = exoPlayer?.repeatMode ?: Player.REPEAT_MODE_OFF
+    val shuffleModeEnabled: Boolean get() = exoPlayer?.shuffleModeEnabled == true
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val player = exoPlayer
+        if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
+            stopSelf()
         }
     }
 
