@@ -317,25 +317,25 @@ fun SirenApp(
                         } else if (currentNavItem == NavigationItem.Playlist) {
                             // Playlist view - show play mode dropdown (single line)
                             Box {
-                                IconButton(onClick = { showPlayModeMenu = !showPlayModeMenu }) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(end = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = currentPlayMode.displayName,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            maxLines = 1,
-                                            modifier = Modifier.weight(1f, fill = false)
-                                        )
-                                        Icon(
-                                            if (showPlayModeMenu) Icons.Default.ArrowDropUp
-                                            else Icons.Default.ArrowDropDown,
-                                            contentDescription = "选择播放模式",
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                        )
-                                    }
+                                Row(
+                                    modifier = Modifier
+                                        .clickable { showPlayModeMenu = !showPlayModeMenu }
+                                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = currentPlayMode.displayName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        maxLines = 1
+                                    )
+                                    Icon(
+                                        if (showPlayModeMenu) Icons.Default.ArrowDropUp
+                                        else Icons.Default.ArrowDropDown,
+                                        contentDescription = "选择播放模式",
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                 }
                                 DropdownMenu(
                                     expanded = showPlayModeMenu,
