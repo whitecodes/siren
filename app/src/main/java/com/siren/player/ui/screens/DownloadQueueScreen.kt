@@ -15,40 +15,39 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.Divider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.siren.player.db.DownloadTask
-import com.siren.player.db.SirenDatabase
-import com.siren.player.db.TaskStatus
-import com.siren.player.ui.SirenViewModel
+
+data class DownloadTaskInfo(
+    val id: Long,
+    val songCid: String,
+    val songName: String,
+    val albumName: String,
+    val progress: Float = 0f,
+    val isCompleted: Boolean = false,
+    val isFailed: Boolean = false
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DownloadQueueScreen(viewModel: SirenViewModel) {
-    val database = viewModel.database
-    val activeTasks by database.downloadTaskDao().getActiveTasks().collectAsState(initial = emptyList())
-    val completedTasks by database.downloadTaskDao().getCompletedTasks().collectAsState(initial = emptyList())
-
+fun DownloadQueueScreen(
+    activeTasks: List<DownloadTaskInfo>,
+    completedTasks: List<DownloadTaskInfo>
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -79,7 +78,7 @@ fun DownloadQueueScreen(viewModel: SirenViewModel) {
         // Completed Downloads Section
         item {
             Spacer(modifier = Modifier.height(16.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "已完成 (${completedTasks.size})",
@@ -105,7 +104,7 @@ fun DownloadQueueScreen(viewModel: SirenViewModel) {
 }
 
 @Composable
-fun ActiveDownloadItem(task: DownloadTask) {
+fun ActiveDownloadItem(task: DownloadTaskInfo) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -115,53 +114,38 @@ fun ActiveDownloadItem(task: DownloadTask) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                when (task.status) {
-                    TaskStatus.PENDING -> {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    }
-                    TaskStatus.DOWNLOADING -> {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    }
-                    TaskStatus.PAUSED -> {
-                        Icon(
-                            Icons.Default.Pause,
-                            contentDescription = "暂停",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                    else -> {}
-                }
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "任务 #${task.id}",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "${task.albumName} - ${task.songName}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = task.status.name,
+                        text = "下载中...",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
-            if (task.status == TaskStatus.DOWNLOADING) {
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { task.progress },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = "${(task.progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { task.progress },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = "${(task.progress * 100).toInt()}%",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
         }
     }
 }
 
 @Composable
-fun CompletedDownloadItem(task: DownloadTask) {
+fun CompletedDownloadItem(task: DownloadTaskInfo) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -175,21 +159,22 @@ fun CompletedDownloadItem(task: DownloadTask) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                if (task.status == TaskStatus.COMPLETED) Icons.Default.CheckCircle
-                else Icons.Default.Error,
+                if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.Error,
                 contentDescription = null,
-                tint = if (task.status == TaskStatus.COMPLETED) MaterialTheme.colorScheme.primary
+                tint = if (task.isCompleted) MaterialTheme.colorScheme.primary
                        else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "任务 #${task.id}",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = "${task.albumName} - ${task.songName}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = task.status.name,
+                    text = if (task.isCompleted) "已完成" else "下载失败",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
