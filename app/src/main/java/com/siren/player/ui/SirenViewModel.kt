@@ -49,15 +49,15 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
     val searchResults: StateFlow<List<AlbumInfo>> = _searchResults
 
     init {
-        loadAlbums()
+        loadAlbums(forceRefresh = false)
     }
 
-    fun loadAlbums() {
+    fun loadAlbums(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
-                val result = withContext(Dispatchers.IO) { repository.getAlbums() }
+                val result = withContext(Dispatchers.IO) { repository.getAlbums(forceRefresh) }
                 Log.d("SirenViewModel", "Loaded ${result.size} albums")
                 _albums.value = result
             } catch (e: Exception) {
@@ -69,20 +69,25 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun openAlbum(albumCid: String) {
+    fun openAlbum(albumCid: String, forceRefresh: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // Get songs from cache or network
+                val songs = withContext(Dispatchers.IO) { repository.getAlbumSongs(albumCid, forceRefresh) }
+                // Get album detail with intro (always from network for intro)
+                val albumDetail = if (forceRefresh || _currentAlbum.value?.cid != albumCid) {
+                    withContext(Dispatchers.IO) { repository.getAlbumDetail(albumCid) }
+                } else {
+                    null
+                }
                 val album = _albums.value.find { it.cid == albumCid }
-                // Fetch album detail with intro
-                val albumDetail = withContext(Dispatchers.IO) { SirenApi.getAlbumDetail(albumCid) }
-                val songs = withContext(Dispatchers.IO) { repository.getAlbumSongs(albumCid) }
                 _currentAlbum.value = UiAlbum(
                     cid = albumCid,
                     name = albumDetail?.name ?: album?.name ?: "",
                     coverUrl = albumDetail?.coverUrl ?: album?.coverUrl ?: "",
                     artistes = albumDetail?.artistes ?: album?.artistes ?: emptyList(),
-                    intro = albumDetail?.intro ?: "",
+                    intro = albumDetail?.intro ?: _currentAlbum.value?.intro ?: "",
                     songs = songs
                 )
             } catch (e: Exception) {
@@ -91,6 +96,11 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
                 _isLoading.value = false
             }
         }
+    }
+
+    fun refreshAlbum() {
+        val albumCid = _currentAlbum.value?.cid ?: return
+        openAlbum(albumCid, forceRefresh = true)
     }
 
     fun getSongDetail(cid: String): SongDetail? {

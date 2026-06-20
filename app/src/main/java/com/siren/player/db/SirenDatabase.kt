@@ -42,7 +42,8 @@ data class Album(
     @PrimaryKey val cid: String,
     val name: String,
     val coverUrl: String,
-    val artists: String
+    val artists: String,
+    val intro: String = ""
 )
 
 @Dao
@@ -61,6 +62,12 @@ interface AlbumDao {
 
     @Query("SELECT * FROM albums")
     fun getAll(): kotlinx.coroutines.flow.Flow<List<Album>>
+
+    @Query("SELECT * FROM albums")
+    suspend fun getAllList(): List<Album>
+
+    @Query("SELECT COUNT(*) FROM albums")
+    suspend fun count(): Int
 }
 
 // ---- Song Entity ----
@@ -82,6 +89,9 @@ interface SongDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(song: Song)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(songs: List<Song>)
+
     @Query("UPDATE songs SET status = :status WHERE cid = :cid")
     suspend fun updateStatus(cid: String, status: DownloadStatus)
 
@@ -91,11 +101,17 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE albumCid = :albumCid")
     fun getAlbumSongs(albumCid: String): kotlinx.coroutines.flow.Flow<List<Song>>
 
+    @Query("SELECT * FROM songs WHERE albumCid = :albumCid")
+    suspend fun getAlbumSongsList(albumCid: String): List<Song>
+
     @Query("SELECT localPath FROM songs WHERE cid = :cid LIMIT 1")
     suspend fun getLocalPath(cid: String): String?
 
     @Query("DELETE FROM songs WHERE cid = :cid")
     suspend fun delete(cid: String)
+
+    @Query("SELECT COUNT(*) FROM songs WHERE albumCid = :albumCid")
+    suspend fun countAlbumSongs(albumCid: String): Int
 }
 
 // ---- DownloadTask Entity ----

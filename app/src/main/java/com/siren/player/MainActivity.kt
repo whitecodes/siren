@@ -276,12 +276,20 @@ fun SirenApp(
                         }
                     },
                     actions = {
-                        if (currentNavItem == NavigationItem.Album && selectedAlbumCid == null) {
-                            IconButton(onClick = { showSearch = !showSearch }) {
-                                Icon(Icons.Default.Search, contentDescription = "搜索")
-                            }
-                            IconButton(onClick = { viewModel.loadAlbums() }) {
-                                Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                        if (currentNavItem == NavigationItem.Album) {
+                            if (selectedAlbumCid == null) {
+                                // Album list view - show search and refresh
+                                IconButton(onClick = { showSearch = !showSearch }) {
+                                    Icon(Icons.Default.Search, contentDescription = "搜索")
+                                }
+                                IconButton(onClick = { viewModel.loadAlbums(forceRefresh = true) }) {
+                                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                                }
+                            } else {
+                                // Album detail view - show refresh only
+                                IconButton(onClick = { viewModel.refreshAlbum() }) {
+                                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                                }
                             }
                         }
                     },

@@ -4,6 +4,7 @@ import android.content.Context
 import com.siren.player.data.api.AlbumInfo
 import com.siren.player.data.api.SirenApi
 import com.siren.player.data.api.SongDetail
+import com.siren.player.data.api.SongInfo
 import com.siren.player.db.Album
 import com.siren.player.db.DownloadStatus
 import com.siren.player.db.SirenDatabase
@@ -26,12 +27,53 @@ class MusicRepository(context: Context) {
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    suspend fun getAlbums(): List<AlbumInfo> = withContext(Dispatchers.IO) {
-        SirenApi.getAlbums()
+    // Get albums from cache first, then network if empty
+    suspend fun getAlbums(forceRefresh: Boolean = false): List<AlbumInfo> = withContext(Dispatchers.IO) {
+        if (!forceRefresh) {
+            val cached = albumDao.getAllList()
+            if (cached.isNotEmpty()) {
+                return@withContext cached.map { album ->
+                    AlbumInfo(
+                        cid = album.cid,
+                        name = album.name,
+                        coverUrl = album.coverUrl,
+                        artistes = album.artists.split(","),
+                        intro = album.intro
+                    )
+                }
+            }
+        }
+        // Fetch from network and cache
+        val albums = SirenApi.getAlbums()
+        saveAlbums(albums)
+        albums
     }
 
-    suspend fun getAlbumSongs(albumCid: String) = withContext(Dispatchers.IO) {
-        SirenApi.getAlbumSongs(albumCid)
+    // Get album songs from cache first, then network if empty
+    suspend fun getAlbumSongs(albumCid: String, forceRefresh: Boolean = false): List<SongInfo> = withContext(Dispatchers.IO) {
+        if (!forceRefresh) {
+            val cachedCount = songDao.countAlbumSongs(albumCid)
+            if (cachedCount > 0) {
+                val cached = songDao.getAlbumSongsList(albumCid)
+                return@withContext cached.map { song ->
+                    SongInfo(
+                        cid = song.cid,
+                        name = song.name,
+                        albumCid = song.albumCid,
+                        artists = song.artists.split(",")
+                    )
+                }
+            }
+        }
+        // Fetch from network and cache
+        val songs = SirenApi.getAlbumSongs(albumCid)
+        saveSongs(songs)
+        songs
+    }
+
+    // Get album detail with intro
+    suspend fun getAlbumDetail(cid: String): com.siren.player.data.api.AlbumDetail? = withContext(Dispatchers.IO) {
+        SirenApi.getAlbumDetail(cid)
     }
 
     suspend fun search(keyword: String): List<AlbumInfo> = withContext(Dispatchers.IO) {
@@ -94,12 +136,13 @@ class MusicRepository(context: Context) {
                 cid = album.cid,
                 name = album.name,
                 coverUrl = album.coverUrl,
-                artists = album.artistes.joinToString(",")
+                artists = album.artistes.joinToString(","),
+                intro = album.intro
             )
         })
     }
 
-    suspend fun saveSongs(songs: List<com.siren.player.data.api.SongInfo>) {
+    suspend fun saveSongs(songs: List<SongInfo>) {
         songs.forEach { song ->
             songDao.insert(
                 Song(
