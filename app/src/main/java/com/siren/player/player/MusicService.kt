@@ -23,6 +23,7 @@ class MusicService : Service() {
     private val binder = LocalBinder()
     private var exoPlayer: ExoPlayer? = null
     private var currentPlayMode = PlayMode.ALBUM_STOP
+    private var _currentTrackIndex = 0
     var onPlaybackStateChange: (() -> Unit)? = null
     var onTrackChange: (() -> Unit)? = null
 
@@ -136,6 +137,7 @@ class MusicService : Service() {
 
     fun play(urls: List<Pair<String, String>>, startIndex: Int = 0) {
         val player = exoPlayer ?: return
+        android.util.Log.d("SirenPlayer", "MusicService.play: startIndex=$startIndex, urls.size=${urls.size}")
         val mediaItems = urls.map { (url, title) ->
             MediaItem.Builder()
                 .setUri(url)
@@ -150,6 +152,7 @@ class MusicService : Service() {
         applyPlayMode()
         player.prepare()
         player.play()
+        android.util.Log.d("SirenPlayer", "MusicService.play: player started, currentMediaItemIndex=${player.currentMediaItemIndex}")
     }
 
     fun playSingle(url: String, title: String) {
@@ -243,19 +246,33 @@ class MusicService : Service() {
 
     fun skipToIndex(index: Int) {
         val player = exoPlayer ?: return
+        android.util.Log.d("SirenPlayer", "skipToIndex: index=$index, mediaItemCount=${player.mediaItemCount}")
         if (index in 0 until player.mediaItemCount) {
+            _currentTrackIndex = index
             player.seekTo(index.toLong())
             if (!player.isPlaying) {
                 player.play()
             }
+            onTrackChange?.invoke()
             onPlaybackStateChange?.invoke()
+            android.util.Log.d("SirenPlayer", "skipToIndex: set _currentTrackIndex=$index")
         }
     }
+
+    val currentMediaItemIndex: Int
+        get() {
+            val player = exoPlayer ?: return _currentTrackIndex
+            val realIndex = player.currentMediaItemIndex
+            // Update our tracking variable when ExoPlayer reports a different index
+            if (realIndex != _currentTrackIndex && realIndex >= 0) {
+                _currentTrackIndex = realIndex
+            }
+            return _currentTrackIndex
+        }
 
     val isPlaying: Boolean get() = exoPlayer?.isPlaying == true
     val currentPosition: Long get() = exoPlayer?.currentPosition ?: 0
     val duration: Long get() = exoPlayer?.duration?.takeIf { it > 0 } ?: 0
-    val currentMediaItemIndex: Int get() = exoPlayer?.currentMediaItemIndex ?: 0
     val mediaItemCount: Int get() = exoPlayer?.mediaItemCount ?: 0
     val currentTitle: String
         get() = exoPlayer?.currentMediaItem?.mediaMetadata?.title?.toString() ?: ""
