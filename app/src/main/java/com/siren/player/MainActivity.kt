@@ -140,6 +140,8 @@ class MainActivity : ComponentActivity() {
         Thread {
             val songs = SirenApi.getAlbumSongs(albumCid)
             val startIndex = songs.indexOfFirst { it.cid == songCid }.coerceAtLeast(0)
+            var newIndex = 0
+            var foundIndex = 0
             val urls = songs.mapNotNull { song ->
                 val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
                 val cachedPath = runBlocking { db.songDao().getLocalPath(song.cid) }
@@ -148,11 +150,15 @@ class MainActivity : ComponentActivity() {
                     runBlocking { downloadManager.enqueue(detail) }
                 }
                 val url = cachedPath ?: detail.sourceUrl
+                if (songs.indexOfFirst { it.cid == song.cid } == startIndex) {
+                    foundIndex = newIndex
+                }
+                newIndex++
                 url to detail.name
             }
             if (urls.isNotEmpty()) {
                 runOnUiThread {
-                    service.play(urls, startIndex)
+                    service.play(urls, foundIndex)
                 }
             }
         }.start()

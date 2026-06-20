@@ -245,7 +245,10 @@ class MusicService : Service() {
         val player = exoPlayer ?: return
         if (index in 0 until player.mediaItemCount) {
             player.seekTo(index.toLong())
-            player.play()
+            if (!player.isPlaying) {
+                player.play()
+            }
+            onPlaybackStateChange?.invoke()
         }
     }
 
