@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.siren.player.data.api.AlbumInfo
+import com.siren.player.data.api.SirenApi
 import com.siren.player.data.api.SongDetail
 import com.siren.player.data.api.SongInfo
 import com.siren.player.data.repository.MusicRepository
@@ -20,6 +21,7 @@ data class UiAlbum(
     val name: String,
     val coverUrl: String,
     val artistes: List<String>,
+    val intro: String = "",
     val songs: List<SongInfo> = emptyList()
 )
 
@@ -72,12 +74,15 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             try {
                 val album = _albums.value.find { it.cid == albumCid }
+                // Fetch album detail with intro
+                val albumDetail = withContext(Dispatchers.IO) { SirenApi.getAlbumDetail(albumCid) }
                 val songs = withContext(Dispatchers.IO) { repository.getAlbumSongs(albumCid) }
                 _currentAlbum.value = UiAlbum(
                     cid = albumCid,
-                    name = album?.name ?: "",
-                    coverUrl = album?.coverUrl ?: "",
-                    artistes = album?.artistes ?: emptyList(),
+                    name = albumDetail?.name ?: album?.name ?: "",
+                    coverUrl = albumDetail?.coverUrl ?: album?.coverUrl ?: "",
+                    artistes = albumDetail?.artistes ?: album?.artistes ?: emptyList(),
+                    intro = albumDetail?.intro ?: "",
                     songs = songs
                 )
             } catch (e: Exception) {
