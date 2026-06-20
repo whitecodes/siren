@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,8 +24,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,89 +45,71 @@ import kotlinx.coroutines.launch
 @Composable
 fun AlbumDetailScreen(
     viewModel: SirenViewModel,
-    onBack: () -> Unit,
     onPlaySong: (songCid: String, songName: String, albumCid: String) -> Unit
 ) {
     val album by viewModel.currentAlbum.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val downloading = remember { mutableStateMapOf<String, Float>() }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(album?.name ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        )
-
-        when {
-            isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+    when {
+        isLoading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-            album != null -> {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // T1.10.4: Remove rounded corners from cover
-                            AsyncImage(
-                                model = album!!.coverUrl,
-                                contentDescription = album!!.name,
-                                modifier = Modifier.size(200.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = album!!.name,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-                            Text(
-                                text = album!!.artistes.joinToString(", "),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "${album!!.songs.size} 首歌曲",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-
-                    itemsIndexed(album!!.songs) { index, song ->
-                        // T1.10.5: Remove rounded corners from SongItem
-                        SongItem(
-                            song = song,
-                            index = index,
-                            downloadProgress = downloading[song.cid],
-                            onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
-                            onDownload = {
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    downloading[song.cid] = 0f
-                                    val detail = viewModel.getSongDetail(song.cid)
-                                    if (detail != null) {
-                                        viewModel.downloadAndCache(detail) { progress ->
-                                            downloading[song.cid] = progress
-                                        }
-                                    }
-                                    downloading.remove(song.cid)
-                                }
-                            }
+        }
+        album != null -> {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AsyncImage(
+                            model = album!!.coverUrl,
+                            contentDescription = album!!.name,
+                            modifier = Modifier.size(200.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = album!!.name,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Text(
+                            text = album!!.artistes.joinToString(", "),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "${album!!.songs.size} 首歌曲",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     }
+                }
+
+                itemsIndexed(album!!.songs) { index, song ->
+                    SongItem(
+                        song = song,
+                        index = index,
+                        downloadProgress = downloading[song.cid],
+                        onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
+                        onDownload = {
+                            CoroutineScope(Dispatchers.Main).launch {
+                                downloading[song.cid] = 0f
+                                val detail = viewModel.getSongDetail(song.cid)
+                                if (detail != null) {
+                                    viewModel.downloadAndCache(detail) { progress ->
+                                        downloading[song.cid] = progress
+                                    }
+                                }
+                                downloading.remove(song.cid)
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -145,7 +124,6 @@ fun SongItem(
     onPlay: () -> Unit,
     onDownload: () -> Unit
 ) {
-    // T1.10.5: No rounded corners on SongItem
     Card(
         modifier = Modifier
             .fillMaxWidth()

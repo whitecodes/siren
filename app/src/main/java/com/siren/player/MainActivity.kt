@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -252,10 +253,26 @@ fun SirenApp(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(currentNavItem.title) },
+                    title = {
+                        if (currentNavItem == NavigationItem.Album && selectedAlbumCid != null) {
+                            Text(
+                                text = viewModel.currentAlbum.collectAsState().value?.name ?: "",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        } else {
+                            Text(currentNavItem.title)
+                        }
+                    },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "菜单")
+                        if (currentNavItem == NavigationItem.Album && selectedAlbumCid != null) {
+                            IconButton(onClick = { selectedAlbumCid = null }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                            }
+                        } else {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = "菜单")
+                            }
                         }
                     },
                     actions = {
@@ -301,7 +318,6 @@ fun SirenApp(
                         if (selectedAlbumCid != null) {
                             AlbumDetailScreen(
                                 viewModel = viewModel,
-                                onBack = { selectedAlbumCid = null },
                                 onPlaySong = onPlaySong
                             )
                         } else {
