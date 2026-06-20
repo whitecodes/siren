@@ -2,7 +2,6 @@ package com.siren.player.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,15 +15,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +48,7 @@ fun PlaylistScreen(musicService: MusicService?) {
     var currentIndex by remember { mutableStateOf(0) }
     var isPlaying by remember { mutableStateOf(false) }
     var playMode by remember { mutableStateOf(PlayMode.ALBUM_STOP) }
+    var showPlayModeMenu by remember { mutableStateOf(false) }
 
     DisposableEffect(musicService) {
         val svc = musicService ?: return@DisposableEffect onDispose {}
@@ -64,40 +68,53 @@ fun PlaylistScreen(musicService: MusicService?) {
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Play Mode Selector
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = "播放模式",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                PlayMode.entries.forEach { mode ->
-                    FilterChip(
-                        selected = playMode == mode,
-                        onClick = { musicService?.setPlayMode(mode) },
-                        label = {
+        // Top bar with play mode dropdown
+        TopAppBar(
+            title = { Text("播放列表") },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ),
+            actions = {
+                // Play mode dropdown
+                Box {
+                    IconButton(onClick = { showPlayModeMenu = true }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = mode.displayName,
-                                style = MaterialTheme.typography.labelSmall
+                                text = playMode.displayName,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = "选择播放模式",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showPlayModeMenu,
+                        onDismissRequest = { showPlayModeMenu = false }
+                    ) {
+                        PlayMode.entries.forEach { mode ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = mode.displayName,
+                                        color = if (playMode == mode) MaterialTheme.colorScheme.primary
+                                               else MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                onClick = {
+                                    musicService?.setPlayMode(mode)
+                                    showPlayModeMenu = false
+                                }
+                            )
+                        }
+                    }
                 }
             }
-        }
+        )
 
         // Playlist
         if (playlist.isEmpty()) {
