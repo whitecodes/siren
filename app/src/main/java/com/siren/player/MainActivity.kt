@@ -13,6 +13,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -32,6 +34,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.siren.player.data.api.SirenApi
 import com.siren.player.player.MusicService
+import com.siren.player.player.PlayMode
 import com.siren.player.ui.SirenViewModel
 import com.siren.player.ui.navigation.NavigationItem
 import com.siren.player.ui.screens.AlbumDetailScreen
@@ -249,6 +254,23 @@ fun SirenApp(
     ) {
         var showSearch by remember { mutableStateOf(false) }
         val searchQuery by viewModel.searchQuery.collectAsState()
+        var showPlayModeMenu by remember { mutableStateOf(false) }
+        var currentPlayMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.ALBUM_STOP) }
+
+        // Poll play mode when on playlist screen
+        DisposableEffect(musicService, currentNavItem) {
+            if (currentNavItem == NavigationItem.Playlist && musicService != null) {
+                val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
+                val job = scope.launch {
+                    while (true) {
+                        currentPlayMode = musicService.playMode
+                        delay(200)
+                    }
+                }
+                onDispose { job.cancel() }
+            }
+            onDispose {}
+        }
 
         Scaffold(
             topBar = {
@@ -289,6 +311,45 @@ fun SirenApp(
                                 // Album detail view - show refresh only
                                 IconButton(onClick = { viewModel.refreshAlbum() }) {
                                     Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                                }
+                            }
+                        } else if (currentNavItem == NavigationItem.Playlist) {
+                            // Playlist view - show play mode dropdown
+                            Box {
+                                IconButton(onClick = { showPlayModeMenu = true }) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = currentPlayMode.displayName,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        Icon(
+                                            Icons.Default.ArrowDropDown,
+                                            contentDescription = "选择播放模式",
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                                DropdownMenu(
+                                    expanded = showPlayModeMenu,
+                                    onDismissRequest = { showPlayModeMenu = false }
+                                ) {
+                                    PlayMode.entries.forEach { mode ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = mode.displayName,
+                                                    color = if (currentPlayMode == mode) MaterialTheme.colorScheme.primary
+                                                           else MaterialTheme.colorScheme.onSurface
+                                                )
+                                            },
+                                            onClick = {
+                                                musicService?.setPlayMode(mode)
+                                                currentPlayMode = mode
+                                                showPlayModeMenu = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
