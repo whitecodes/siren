@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -314,17 +315,22 @@ fun SirenApp(
                                 }
                             }
                         } else if (currentNavItem == NavigationItem.Playlist) {
-                            // Playlist view - show play mode dropdown
+                            // Playlist view - show play mode dropdown (single line)
                             Box {
-                                IconButton(onClick = { showPlayModeMenu = true }) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = { showPlayModeMenu = !showPlayModeMenu }) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(end = 4.dp)
+                                    ) {
                                         Text(
                                             text = currentPlayMode.displayName,
                                             style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            maxLines = 1
                                         )
                                         Icon(
-                                            Icons.Default.ArrowDropDown,
+                                            if (showPlayModeMenu) Icons.Default.ArrowDropUp
+                                            else Icons.Default.ArrowDropDown,
                                             contentDescription = "选择播放模式",
                                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
