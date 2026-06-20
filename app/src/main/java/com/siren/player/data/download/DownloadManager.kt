@@ -2,6 +2,7 @@ package com.siren.player.data.download
 
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import com.siren.player.data.api.SirenApi
 import com.siren.player.data.api.SongDetail
 import com.siren.player.db.DownloadStatus
@@ -18,7 +19,6 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.io.RandomAccessFile
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
@@ -87,12 +87,11 @@ class DownloadManager(
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    fun getDownloadPath(albumName: String, fileName: String): String {
-        val musicDir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
-            albumName
-        )
-        return File(musicDir, fileName).absolutePath
+    // Use app's internal cache directory for downloads
+    private val downloadDir = File(context.cacheDir, "downloads").also { it.mkdirs() }
+
+    fun getDownloadPath(songCid: String, fileName: String): String {
+        return File(downloadDir, "${songCid}_$fileName").absolutePath
     }
 
     suspend fun enqueue(song: SongDetail): Long {
@@ -125,50 +124,59 @@ class DownloadManager(
 
     private fun startDownload(taskId: Long, song: SongDetail, albumName: String) {
         val job = scope.launch {
-            songDao.updateStatus(song.cid, DownloadStatus.DOWNLOADING)
-
             try {
+                songDao.updateStatus(song.cid, DownloadStatus.DOWNLOADING)
+                Log.d("DownloadManager", "Starting download for ${song.name}")
+
                 // Fetch fresh URL
                 val freshSong = SirenApi.getSongDetail(song.cid) ?: song
                 val url = freshSong.sourceUrl
+                Log.d("DownloadManager", "Download URL: $url")
 
                 val ext = if (url.endsWith(".wav")) ".wav" else ".mp3"
                 val fileName = "${song.name}$ext"
-                val filePath = getDownloadPath(albumName, fileName)
+                val filePath = getDownloadPath(song.cid, fileName)
                 val file = File(filePath)
-                file.parentFile?.mkdirs()
 
-                val requestBuilder = Request.Builder().url(url)
-                val response = client.newCall(requestBuilder.build()).execute()
+                val request = Request.Builder().url(url).build()
+                val response = client.newCall(request).execute()
+
+                if (!response.isSuccessful) {
+                    throw Exception("HTTP ${response.code}")
+                }
+
                 val body = response.body ?: throw Exception("Empty response body")
-                val contentLength = body.contentLength().toFloat()
-                var totalRead = 0L
+                val contentLength = body.contentLength()
+                Log.d("DownloadManager", "Content length: $contentLength")
 
                 file.outputStream().use { output ->
                     body.byteStream().use { input ->
                         val buffer = ByteArray(8192)
                         var bytesRead = input.read(buffer)
+                        var totalRead = 0L
                         while (isActive && bytesRead != -1) {
                             output.write(buffer, 0, bytesRead)
                             totalRead += bytesRead
+                            // Calculate progress - handle unknown content length
                             val progress = if (contentLength > 0) {
-                                totalRead / contentLength
+                                (totalRead.toFloat() / contentLength.toFloat()).coerceIn(0f, 0.99f)
                             } else {
-                                0f
+                                0.5f // Unknown size, show indeterminate
                             }
-                            DownloadQueue.updateProgress(taskId, progress.coerceAtMost(1f))
+                            DownloadQueue.updateProgress(taskId, progress)
+                            if (totalRead % (8192 * 10) == 0L) {
+                                Log.d("DownloadManager", "Downloaded $totalRead bytes, progress: $progress")
+                            }
+                            bytesRead = input.read(buffer)
                         }
                     }
                 }
 
-                if (isActive) {
-                    DownloadQueue.complete(taskId)
-                    songDao.updateLocalPath(song.cid, filePath, DownloadStatus.DOWNLOADED)
-                } else {
-                    DownloadQueue.fail(taskId)
-                }
+                Log.d("DownloadManager", "Download complete: $filePath")
+                DownloadQueue.complete(taskId)
+                songDao.updateLocalPath(song.cid, filePath, DownloadStatus.DOWNLOADED)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("DownloadManager", "Download failed: ${e.message}", e)
                 DownloadQueue.fail(taskId)
                 songDao.updateStatus(song.cid, DownloadStatus.DOWNLOAD_FAILED)
             } finally {
