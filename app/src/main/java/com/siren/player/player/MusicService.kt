@@ -246,16 +246,17 @@ class MusicService : Service() {
 
     fun skipToIndex(index: Int) {
         val player = exoPlayer ?: return
-        android.util.Log.d("SirenPlayer", "skipToIndex: index=$index, mediaItemCount=${player.mediaItemCount}")
+        android.util.Log.d("SirenPlayer", "skipToIndex: index=$index, mediaItemCount=${player.mediaItemCount}, currentTitle=${player.currentMediaItem?.mediaMetadata?.title}")
         if (index in 0 until player.mediaItemCount) {
             _currentTrackIndex = index
-            player.seekTo(index.toLong())
+            // seekTo(mediaItemIndex, positionMs) - skip to specific media item at beginning
+            player.seekTo(index, 0)
             if (!player.isPlaying) {
                 player.play()
             }
             onTrackChange?.invoke()
             onPlaybackStateChange?.invoke()
-            android.util.Log.d("SirenPlayer", "skipToIndex: set _currentTrackIndex=$index")
+            android.util.Log.d("SirenPlayer", "skipToIndex: after seekTo, newTitle=${player.getMediaItemAt(index).mediaMetadata?.title}")
         }
     }
 
