@@ -1,24 +1,27 @@
 package com.siren.player.player
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Intent
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import androidx.annotation.OptIn
+import androidx.core.app.NotificationCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
 import com.siren.player.MainActivity
+import com.siren.player.R
 
-class MusicService : MediaSessionService() {
+class MusicService : Service() {
 
     private val binder = LocalBinder()
     private var exoPlayer: ExoPlayer? = null
-    private var mediaSession: MediaSession? = null
     private var currentPlayMode = PlayMode.ALBUM_STOP
     var onPlaybackStateChange: (() -> Unit)? = null
     var onTrackChange: (() -> Unit)? = null
@@ -27,19 +30,24 @@ class MusicService : MediaSessionService() {
         fun getService(): MusicService = this@MusicService
     }
 
+    override fun onBind(intent: Intent?): IBinder = binder
+
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannel()
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == Player.STATE_ENDED) {
                         handlePlaybackEnd()
                     }
+                    updateNotification()
                     onPlaybackStateChange?.invoke()
                 }
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    updateNotification()
                     onTrackChange?.invoke()
                 }
 
@@ -48,24 +56,48 @@ class MusicService : MediaSessionService() {
                 }
             })
         }
+    }
 
-        val intent = Intent(this, MainActivity::class.java)
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "音乐播放",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "塞壬唱片音乐播放控制"
+            }
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun updateNotification() {
+        val player = exoPlayer ?: return
+        if (!player.isPlaying && player.currentMediaItem == null) return
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaSession.Builder(this, exoPlayer!!)
-            .setSessionActivity(pendingIntent)
-            .build()
-    }
+        val title = player.currentMediaItem?.mediaMetadata?.title?.toString() ?: "塞壬唱片"
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
+        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText("塞壬唱片")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(pendingIntent)
+            .setOngoing(player.isPlaying)
+            .build()
+
+        startForeground(NOTIFICATION_ID, notification)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
         return START_STICKY
     }
 
@@ -228,19 +260,13 @@ class MusicService : MediaSessionService() {
     val repeatMode: Int get() = exoPlayer?.repeatMode ?: Player.REPEAT_MODE_OFF
     val shuffleModeEnabled: Boolean get() = exoPlayer?.shuffleModeEnabled == true
 
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        val player = exoPlayer
-        if (player == null || !player.playWhenReady || player.mediaItemCount == 0) {
-            stopSelf()
-        }
-    }
-
     override fun onDestroy() {
-        mediaSession?.run {
-            player.release()
-            release()
-        }
         exoPlayer?.release()
         super.onDestroy()
+    }
+
+    companion object {
+        private const val NOTIFICATION_CHANNEL_ID = "siren_music_channel"
+        private const val NOTIFICATION_ID = 1
     }
 }
