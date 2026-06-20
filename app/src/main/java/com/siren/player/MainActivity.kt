@@ -324,15 +324,16 @@ fun SirenApp(
                                     ) {
                                         Text(
                                             text = currentPlayMode.displayName,
-                                            style = MaterialTheme.typography.labelLarge,
+                                            style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            modifier = Modifier.weight(1f, fill = false)
                                         )
                                         Icon(
                                             if (showPlayModeMenu) Icons.Default.ArrowDropUp
                                             else Icons.Default.ArrowDropDown,
                                             contentDescription = "选择播放模式",
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                         )
                                     }
                                 }
