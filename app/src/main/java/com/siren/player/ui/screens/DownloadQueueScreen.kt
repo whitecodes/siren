@@ -1,7 +1,6 @@
 package com.siren.player.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,27 +25,21 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-
-data class DownloadTaskInfo(
-    val id: Long,
-    val songCid: String,
-    val songName: String,
-    val albumName: String,
-    val progress: Float = 0f,
-    val isCompleted: Boolean = false,
-    val isFailed: Boolean = false
-)
+import com.siren.player.data.download.DownloadItem
+import com.siren.player.data.download.DownloadQueue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DownloadQueueScreen(
-    activeTasks: List<DownloadTaskInfo>,
-    completedTasks: List<DownloadTaskInfo>
-) {
+fun DownloadQueueScreen() {
+    val activeTasks by DownloadQueue.activeTasks.collectAsState()
+    val completedTasks by DownloadQueue.completedTasks.collectAsState()
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -104,7 +96,7 @@ fun DownloadQueueScreen(
 }
 
 @Composable
-fun ActiveDownloadItem(task: DownloadTaskInfo) {
+fun ActiveDownloadItem(task: DownloadItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -145,7 +137,7 @@ fun ActiveDownloadItem(task: DownloadTaskInfo) {
 }
 
 @Composable
-fun CompletedDownloadItem(task: DownloadTaskInfo) {
+fun CompletedDownloadItem(task: DownloadItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(

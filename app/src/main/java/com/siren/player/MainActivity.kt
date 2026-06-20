@@ -410,11 +410,7 @@ fun SirenApp(
                         PlaylistScreen(musicService = musicService)
                     }
                     NavigationItem.DownloadQueue -> {
-                        // Pass empty lists for now - download queue is session-only
-                        DownloadQueueScreen(
-                            activeTasks = emptyList(),
-                            completedTasks = emptyList()
-                        )
+                        DownloadQueueScreen()
                     }
                     NavigationItem.Settings -> {
                         SettingsScreen(viewModel = viewModel)

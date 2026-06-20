@@ -16,8 +16,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,12 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.siren.player.data.api.SongInfo
+import com.siren.player.data.download.DownloadManager
 import com.siren.player.ui.SirenViewModel
 import kotlinx.coroutines.launch
 
@@ -45,11 +43,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun AlbumDetailScreen(
     viewModel: SirenViewModel,
-    onPlaySong: (songCid: String, songName: String, albumCid: String) -> Unit
+    onPlaySong: (songCid: String, songName: String, albumCid: String) -> Unit,
+    downloadManager: DownloadManager? = null
 ) {
     val album by viewModel.currentAlbum.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val downloading = remember { mutableStateMapOf<String, Float>() }
     val downloadedSongs = remember { mutableStateMapOf<String, Boolean>() }
     val scope = rememberCoroutineScope()
 
@@ -85,7 +83,6 @@ fun AlbumDetailScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
-                        // Album intro
                         if (album!!.intro.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -104,25 +101,19 @@ fun AlbumDetailScreen(
                     }
                 }
 
-                // Song list - simplified style
+                // Song list
                 itemsIndexed(album!!.songs) { index, song ->
                     SongItem(
                         song = song,
                         index = index,
-                        isDownloading = downloading.containsKey(song.cid),
                         isDownloaded = downloadedSongs[song.cid] == true,
                         onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
                         onDownload = {
                             scope.launch {
-                                downloading[song.cid] = 0f
                                 val detail = viewModel.getSongDetail(song.cid)
-                                if (detail != null) {
-                                    viewModel.downloadAndCache(detail) { progress ->
-                                        downloading[song.cid] = progress
-                                    }
+                                if (detail != null && downloadManager != null) {
+                                    downloadManager.enqueue(detail)
                                 }
-                                downloading.remove(song.cid)
-                                downloadedSongs[song.cid] = true
                             }
                         }
                     )
@@ -136,7 +127,6 @@ fun AlbumDetailScreen(
 fun SongItem(
     song: SongInfo,
     index: Int,
-    isDownloading: Boolean,
     isDownloaded: Boolean,
     onPlay: () -> Unit,
     onDownload: () -> Unit
@@ -161,12 +151,7 @@ fun SongItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        if (isDownloading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                strokeWidth = 2.dp
-            )
-        } else if (isDownloaded) {
+        if (isDownloaded) {
             Icon(
                 Icons.Default.Check,
                 contentDescription = "已下载",

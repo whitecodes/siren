@@ -10,7 +10,9 @@ import com.siren.player.db.TaskStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
@@ -20,12 +22,62 @@ import java.io.RandomAccessFile
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
+data class DownloadItem(
+    val id: Long = System.currentTimeMillis(),
+    val songCid: String,
+    val songName: String = "",
+    val albumName: String = "",
+    val progress: Float = 0f,
+    val isCompleted: Boolean = false,
+    val isFailed: Boolean = false
+)
+
+object DownloadQueue {
+    private val _activeTasks = MutableStateFlow<List<DownloadItem>>(emptyList())
+    val activeTasks: StateFlow<List<DownloadItem>> = _activeTasks.asStateFlow()
+
+    private val _completedTasks = MutableStateFlow<List<DownloadItem>>(emptyList())
+    val completedTasks: StateFlow<List<DownloadItem>> = _completedTasks.asStateFlow()
+
+    private val activeMap = ConcurrentHashMap<Long, DownloadItem>()
+
+    fun updateProgress(id: Long, progress: Float) {
+        activeMap[id]?.let { item ->
+            activeMap[id] = item.copy(progress = progress)
+            _activeTasks.value = activeMap.values.toList()
+        }
+    }
+
+    fun complete(id: Long) {
+        activeMap.remove(id)?.let { item ->
+            _completedTasks.value = listOf(item.copy(isCompleted = true)) + _completedTasks.value
+            _activeTasks.value = activeMap.values.toList()
+        }
+    }
+
+    fun fail(id: Long) {
+        activeMap.remove(id)?.let { item ->
+            _completedTasks.value = listOf(item.copy(isFailed = true)) + _completedTasks.value
+            _activeTasks.value = activeMap.values.toList()
+        }
+    }
+
+    fun addTask(item: DownloadItem) {
+        activeMap[item.id] = item
+        _activeTasks.value = activeMap.values.toList()
+    }
+
+    fun removeTask(id: Long) {
+        activeMap.remove(id)
+        _activeTasks.value = activeMap.values.toList()
+    }
+}
+
 class DownloadManager(
     private val context: Context,
     private val database: SirenDatabase
 ) {
     private val songDao = database.songDao()
-    private val taskDao = database.downloadTaskDao()
     private val albumDao = database.albumDao()
     private val scope = CoroutineScope(Dispatchers.IO)
     private val activeJobs = ConcurrentHashMap<Long, Job>()
@@ -34,8 +86,6 @@ class DownloadManager(
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
-
-    val activeTasks: Flow<List<com.siren.player.db.DownloadTask>> = taskDao.getActiveTasks()
 
     fun getDownloadPath(albumName: String, fileName: String): String {
         val musicDir = File(
@@ -46,15 +96,18 @@ class DownloadManager(
     }
 
     suspend fun enqueue(song: SongDetail): Long {
-        val task = com.siren.player.db.DownloadTask(
-            songCid = song.cid,
-            status = TaskStatus.PENDING,
-            progress = 0f,
-            pausePoint = 0L
-        )
-        val taskId = taskDao.insert(task)
+        val taskId = System.currentTimeMillis()
+        val album = albumDao.get(song.albumCid)
 
-        // Also ensure song record exists
+        val item = DownloadItem(
+            id = taskId,
+            songCid = song.cid,
+            songName = song.name,
+            albumName = album?.name ?: "未知专辑"
+        )
+        DownloadQueue.addTask(item)
+
+        // Ensure song record exists
         songDao.insert(
             com.siren.player.db.Song(
                 cid = song.cid,
@@ -66,97 +119,58 @@ class DownloadManager(
         )
 
         // Start download
-        startDownload(taskId, song)
+        startDownload(taskId, song, item.albumName)
         return taskId
     }
 
-    private fun startDownload(taskId: Long, song: SongDetail, resumeFrom: Long = 0L) {
+    private fun startDownload(taskId: Long, song: SongDetail, albumName: String) {
         val job = scope.launch {
-            taskDao.updateStatus(taskId, TaskStatus.DOWNLOADING)
             songDao.updateStatus(song.cid, DownloadStatus.DOWNLOADING)
-            var lastProgress = resumeFrom
 
             try {
-                // Fetch fresh URL (URLs expire)
+                // Fetch fresh URL
                 val freshSong = SirenApi.getSongDetail(song.cid) ?: song
                 val url = freshSong.sourceUrl
 
-                // Determine file path
-                val album = albumDao.get(song.albumCid)
-                val albumName = album?.name ?: "Unknown"
                 val ext = if (url.endsWith(".wav")) ".wav" else ".mp3"
                 val fileName = "${song.name}$ext"
                 val filePath = getDownloadPath(albumName, fileName)
                 val file = File(filePath)
-
-                // Create parent directory
                 file.parentFile?.mkdirs()
 
                 val requestBuilder = Request.Builder().url(url)
-                if (resumeFrom > 0) {
-                    requestBuilder.addHeader("Range", "bytes=$resumeFrom-")
-                }
-
                 val response = client.newCall(requestBuilder.build()).execute()
                 val body = response.body ?: throw Exception("Empty response body")
                 val contentLength = body.contentLength().toFloat()
+                var totalRead = 0L
 
-                if (resumeFrom > 0 && file.exists()) {
-                    // Append to existing file
-                    RandomAccessFile(file, "rw").use { raf ->
-                        raf.seek(resumeFrom)
-                        body.byteStream().use { input ->
-                            val buffer = ByteArray(8192)
-                            var bytesRead = input.read(buffer)
-                            while (isActive && bytesRead != -1) {
-                                raf.write(buffer, 0, bytesRead)
-                                lastProgress += bytesRead
-                                val progress = if (contentLength > 0) {
-                                    lastProgress / (resumeFrom + contentLength)
-                                } else {
-                                    0f
-                                }
-                                taskDao.updateProgress(taskId, progress.coerceAtMost(1f))
-                                bytesRead = input.read(buffer)
+                file.outputStream().use { output ->
+                    body.byteStream().use { input ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead = input.read(buffer)
+                        while (isActive && bytesRead != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            totalRead += bytesRead
+                            val progress = if (contentLength > 0) {
+                                totalRead / contentLength
+                            } else {
+                                0f
                             }
-                        }
-                    }
-                } else {
-                    // Write new file
-                    file.outputStream().use { output ->
-                        body.byteStream().use { input ->
-                            val buffer = ByteArray(8192)
-                            var bytesRead = input.read(buffer)
-                            while (isActive && bytesRead != -1) {
-                                output.write(buffer, 0, bytesRead)
-                                lastProgress += bytesRead
-                                val progress = if (contentLength > 0) {
-                                    lastProgress / contentLength
-                                } else {
-                                    0f
-                                }
-                                taskDao.updateProgress(taskId, progress.coerceAtMost(1f))
-                                bytesRead = input.read(buffer)
-                            }
+                            DownloadQueue.updateProgress(taskId, progress.coerceAtMost(1f))
                         }
                     }
                 }
 
                 if (isActive) {
-                    // Download complete
-                    taskDao.updateStatus(taskId, TaskStatus.COMPLETED)
-                    taskDao.updateProgress(taskId, 1f)
+                    DownloadQueue.complete(taskId)
                     songDao.updateLocalPath(song.cid, filePath, DownloadStatus.DOWNLOADED)
                 } else {
-                    // Cancelled - save pause point
-                    taskDao.pauseTask(taskId, TaskStatus.CANCELLED, lastProgress)
+                    DownloadQueue.fail(taskId)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                if (isActive) {
-                    taskDao.updateStatus(taskId, TaskStatus.FAILED)
-                    songDao.updateStatus(song.cid, DownloadStatus.DOWNLOAD_FAILED)
-                }
+                DownloadQueue.fail(taskId)
+                songDao.updateStatus(song.cid, DownloadStatus.DOWNLOAD_FAILED)
             } finally {
                 activeJobs.remove(taskId)
             }
@@ -164,51 +178,13 @@ class DownloadManager(
         activeJobs[taskId] = job
     }
 
-    fun pause(taskId: Long) {
-        activeJobs[taskId]?.let { job ->
-            job.cancel()
-            scope.launch {
-                val task = taskDao.get(taskId)
-                if (task != null && task.status == TaskStatus.DOWNLOADING) {
-                    taskDao.pauseTask(taskId, TaskStatus.PAUSED, task.pausePoint)
-                    songDao.updateStatus(task.songCid, DownloadStatus.NOT_DOWNLOADED)
-                }
-            }
-        }
-    }
-
-    fun resume(taskId: Long) {
-        scope.launch {
-            val task = taskDao.get(taskId) ?: return@launch
-            if (task.status == TaskStatus.PAUSED) {
-                val song = SirenApi.getSongDetail(task.songCid) ?: return@launch
-                startDownload(taskId, song, task.pausePoint)
-            }
-        }
-    }
-
     fun cancel(taskId: Long) {
-        activeJobs[taskId]?.let { job ->
-            job.cancel()
-        }
-        scope.launch {
-            taskDao.updateStatus(taskId, TaskStatus.CANCELLED)
-            val task = taskDao.get(taskId)
-            if (task != null) {
-                songDao.updateStatus(task.songCid, DownloadStatus.NOT_DOWNLOADED)
-            }
-        }
+        activeJobs[taskId]?.cancel()
+        DownloadQueue.removeTask(taskId)
     }
 
     fun cancelAll() {
         activeJobs.forEach { (_, job) -> job.cancel() }
         activeJobs.clear()
-        scope.launch {
-            taskDao.getActiveTasks().collect { tasks ->
-                tasks.forEach { task ->
-                    taskDao.updateStatus(task.id, TaskStatus.CANCELLED)
-                }
-            }
-        }
     }
 }
