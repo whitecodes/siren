@@ -119,21 +119,6 @@ class DownloadManager(
         )
         DownloadQueue.addTask(item)
 
-        // Only insert song if it doesn't exist (preserve existing order)
-        val existingSong = songDao.get(song.cid)
-        if (existingSong == null) {
-            songDao.insert(
-                com.siren.player.db.Song(
-                    cid = song.cid,
-                    name = song.name,
-                    albumCid = song.albumCid,
-                    artists = song.artists.joinToString(","),
-                    status = DownloadStatus.NOT_DOWNLOADED,
-                    order = 0
-                )
-            )
-        }
-
         startDownload(taskId, song, item.albumName)
         return taskId
     }
