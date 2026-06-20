@@ -147,33 +147,23 @@ class MainActivity : ComponentActivity() {
     private fun playSong(songCid: String, songName: String, albumCid: String) {
         val service = musicService ?: return
         val db = (application as SirenApp).database
-        val downloadManager = com.siren.player.data.download.DownloadManager(this, db)
         Thread {
             val songs = SirenApi.getAlbumSongs(albumCid)
-            android.util.Log.d("SirenPlayer", "playSong: songCid=$songCid, albumCid=$albumCid, songsCount=${songs.size}")
-            val originalIndex = songs.indexOfFirst { it.cid == songCid }
-            android.util.Log.d("SirenPlayer", "playSong: originalIndex=$originalIndex")
+            val startIndex = songs.indexOfFirst { it.cid == songCid }.coerceAtLeast(0)
             var newIndex = 0
             var foundIndex = 0
             val urls = songs.mapNotNull { song ->
                 val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
                 val cachedPath = runBlocking { db.songDao().getLocalPath(song.cid) }
-                // Trigger auto-cache if not cached
-                if (cachedPath == null) {
-                    runBlocking { downloadManager.enqueue(detail) }
-                }
                 val url = cachedPath ?: detail.sourceUrl
                 if (song.cid == songCid) {
                     foundIndex = newIndex
-                    android.util.Log.d("SirenPlayer", "playSong: found target song at newIndex=$newIndex")
                 }
                 newIndex++
                 url to detail.name
             }
-            android.util.Log.d("SirenPlayer", "playSong: urls.size=${urls.size}, foundIndex=$foundIndex")
             if (urls.isNotEmpty()) {
                 runOnUiThread {
-                    android.util.Log.d("SirenPlayer", "playSong: calling service.play with startIndex=$foundIndex")
                     service.play(urls, foundIndex)
                 }
             }
@@ -183,16 +173,11 @@ class MainActivity : ComponentActivity() {
     private fun playAlbum(albumCid: String) {
         val service = musicService ?: return
         val db = (application as SirenApp).database
-        val downloadManager = com.siren.player.data.download.DownloadManager(this, db)
         Thread {
             val songs = SirenApi.getAlbumSongs(albumCid)
             val urls = songs.mapNotNull { song ->
                 val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
                 val cachedPath = runBlocking { db.songDao().getLocalPath(song.cid) }
-                // Trigger auto-cache if not cached
-                if (cachedPath == null) {
-                    runBlocking { downloadManager.enqueue(detail) }
-                }
                 val url = cachedPath ?: detail.sourceUrl
                 url to detail.name
             }
