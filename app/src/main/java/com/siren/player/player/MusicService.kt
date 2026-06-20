@@ -4,7 +4,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.Binder
-import android.os.Build
 import android.os.IBinder
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
@@ -14,13 +13,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import com.siren.player.MainActivity
-import com.siren.player.SirenApp
 
 class MusicService : Service() {
 
     private val binder = LocalBinder()
     private var exoPlayer: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
+    private var currentPlayMode = PlayMode.ALBUM_STOP
     var onPlaybackStateChange: (() -> Unit)? = null
     var onTrackChange: (() -> Unit)? = null
 
@@ -36,6 +35,9 @@ class MusicService : Service() {
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
+                    if (state == Player.STATE_ENDED) {
+                        handlePlaybackEnd()
+                    }
                     onPlaybackStateChange?.invoke()
                 }
 
@@ -64,6 +66,39 @@ class MusicService : Service() {
         return START_STICKY
     }
 
+    private fun handlePlaybackEnd() {
+        when (currentPlayMode) {
+            PlayMode.SINGLE_LOOP -> {
+                exoPlayer?.let { player ->
+                    player.seekTo(0)
+                    player.play()
+                }
+            }
+            PlayMode.SINGLE_STOP -> {
+                exoPlayer?.pause()
+            }
+            PlayMode.ALBUM_LOOP -> {
+                exoPlayer?.let { player ->
+                    if (player.currentMediaItemIndex >= player.mediaItemCount - 1) {
+                        player.seekTo(0)
+                        player.play()
+                    }
+                }
+            }
+            PlayMode.ALBUM_STOP -> {
+                // Default behavior - stop at end
+            }
+            PlayMode.ALBUM_SHUFFLE -> {
+                exoPlayer?.let { player ->
+                    if (player.currentMediaItemIndex >= player.mediaItemCount - 1) {
+                        player.seekTo(0)
+                        player.play()
+                    }
+                }
+            }
+        }
+    }
+
     fun play(urls: List<Pair<String, String>>, startIndex: Int = 0) {
         val player = exoPlayer ?: return
         val mediaItems = urls.map { (url, title) ->
@@ -77,6 +112,7 @@ class MusicService : Service() {
                 .build()
         }
         player.setMediaItems(mediaItems, startIndex, 0)
+        applyPlayMode()
         player.prepare()
         player.play()
     }
@@ -109,6 +145,9 @@ class MusicService : Service() {
         val player = exoPlayer ?: return
         if (player.hasNextMediaItem()) {
             player.seekToNext()
+        } else if (currentPlayMode == PlayMode.ALBUM_LOOP || currentPlayMode == PlayMode.ALBUM_SHUFFLE) {
+            player.seekTo(0)
+            player.play()
         }
     }
 
@@ -121,12 +160,40 @@ class MusicService : Service() {
         }
     }
 
-    fun setRepeatMode(mode: Int) {
-        exoPlayer?.repeatMode = mode
+    fun setPlayMode(mode: PlayMode) {
+        currentPlayMode = mode
+        applyPlayMode()
+        onPlaybackStateChange?.invoke()
     }
 
-    fun setShuffleMode(enabled: Boolean) {
-        exoPlayer?.shuffleModeEnabled = enabled
+    private fun applyPlayMode() {
+        val player = exoPlayer ?: return
+        when (currentPlayMode) {
+            PlayMode.SINGLE_LOOP -> {
+                player.repeatMode = Player.REPEAT_MODE_ONE
+                player.shuffleModeEnabled = false
+            }
+            PlayMode.SINGLE_STOP -> {
+                player.repeatMode = Player.REPEAT_MODE_OFF
+                player.shuffleModeEnabled = false
+            }
+            PlayMode.ALBUM_LOOP -> {
+                player.repeatMode = Player.REPEAT_MODE_ALL
+                player.shuffleModeEnabled = false
+            }
+            PlayMode.ALBUM_STOP -> {
+                player.repeatMode = Player.REPEAT_MODE_OFF
+                player.shuffleModeEnabled = false
+            }
+            PlayMode.ALBUM_SHUFFLE -> {
+                player.repeatMode = Player.REPEAT_MODE_OFF
+                player.shuffleModeEnabled = true
+            }
+        }
+    }
+
+    fun cyclePlayMode() {
+        setPlayMode(currentPlayMode.next())
     }
 
     val isPlaying: Boolean get() = exoPlayer?.isPlaying == true
@@ -136,6 +203,7 @@ class MusicService : Service() {
     val mediaItemCount: Int get() = exoPlayer?.mediaItemCount ?: 0
     val currentTitle: String
         get() = exoPlayer?.currentMediaItem?.mediaMetadata?.title?.toString() ?: ""
+    val playMode: PlayMode get() = currentPlayMode
     val repeatMode: Int get() = exoPlayer?.repeatMode ?: Player.REPEAT_MODE_OFF
     val shuffleModeEnabled: Boolean get() = exoPlayer?.shuffleModeEnabled == true
 

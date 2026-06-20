@@ -48,8 +48,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.media3.common.Player
 import com.siren.player.player.MusicService
+import com.siren.player.player.PlayMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -65,8 +65,7 @@ fun PlayerScreen(
     var currentPos by remember { mutableLongStateOf(musicService?.currentPosition ?: 0) }
     var duration by remember { mutableLongStateOf(musicService?.duration ?: 0) }
     var title by remember { mutableStateOf(musicService?.currentTitle ?: "") }
-    var repeatMode by remember { mutableStateOf(musicService?.repeatMode ?: Player.REPEAT_MODE_OFF) }
-    var shuffleEnabled by remember { mutableStateOf(musicService?.shuffleModeEnabled == true) }
+    var playMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.ALBUM_STOP) }
 
     DisposableEffect(musicService) {
         val service = musicService ?: return@DisposableEffect onDispose {}
@@ -75,8 +74,7 @@ fun PlayerScreen(
             currentPos = service.currentPosition
             duration = service.duration
             title = service.currentTitle
-            repeatMode = service.repeatMode
-            shuffleEnabled = service.shuffleModeEnabled
+            playMode = service.playMode
         }
         val job = CoroutineScope(Dispatchers.Main).launch {
             while (true) {
@@ -181,14 +179,15 @@ fun PlayerScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {
-                    musicService?.setShuffleMode(!shuffleEnabled)
-                    shuffleEnabled = !shuffleEnabled
-                }) {
+                IconButton(onClick = { musicService?.cyclePlayMode() }) {
                     Icon(
-                        Icons.Default.Shuffle,
-                        contentDescription = "随机",
-                        tint = if (shuffleEnabled) MaterialTheme.colorScheme.primary
+                        when (playMode) {
+                            PlayMode.SINGLE_LOOP -> Icons.Default.RepeatOne
+                            PlayMode.ALBUM_SHUFFLE -> Icons.Default.Shuffle
+                            else -> Icons.Default.Repeat
+                        },
+                        contentDescription = playMode.displayName,
+                        tint = if (playMode != PlayMode.ALBUM_STOP) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }
@@ -230,23 +229,11 @@ fun PlayerScreen(
                     Icon(Icons.Default.SkipNext, contentDescription = "下一首")
                 }
 
-                IconButton(onClick = {
-                    val next = when (repeatMode) {
-                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                        else -> Player.REPEAT_MODE_OFF
-                    }
-                    musicService?.setRepeatMode(next)
-                    repeatMode = next
-                }) {
-                    Icon(
-                        if (repeatMode == Player.REPEAT_MODE_ONE) Icons.Default.RepeatOne
-                        else Icons.Default.Repeat,
-                        contentDescription = "循环",
-                        tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
+                Text(
+                    text = playMode.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
             }
         }
     }
