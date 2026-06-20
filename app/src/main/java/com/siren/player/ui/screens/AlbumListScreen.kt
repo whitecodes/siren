@@ -14,24 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -51,75 +40,41 @@ fun AlbumListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val error by viewModel.error.collectAsState()
-    var showSearch by remember { mutableStateOf(false) }
 
     val displayAlbums = if (searchQuery.isNotBlank()) searchResults else albums
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Top bar with search button (no title)
-        TopAppBar(
-            title = {},
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            ),
-            actions = {
-                IconButton(onClick = { showSearch = !showSearch }) {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
-                }
-                IconButton(onClick = { viewModel.loadAlbums() }) {
-                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
-                }
+    when {
+        isLoading && displayAlbums.isEmpty() -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-        )
-
-        // Search field (shown when search button is clicked)
-        if (showSearch) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.searchAlbums(it) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("搜索专辑...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true
-            )
         }
-
-        when {
-            isLoading && displayAlbums.isEmpty() -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+        error != null -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(error ?: "", color = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("点击刷新重试", modifier = Modifier.clickable {
+                        viewModel.clearError()
+                        viewModel.loadAlbums()
+                    })
                 }
             }
-            error != null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(error ?: "", color = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("点击刷新重试", modifier = Modifier.clickable {
-                            viewModel.clearError()
-                            viewModel.loadAlbums()
-                        })
-                    }
-                }
+        }
+        displayAlbums.isEmpty() -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("暂无内容")
             }
-            displayAlbums.isEmpty() -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("暂无内容")
-                }
-            }
-            else -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    contentPadding = PaddingValues(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    items(displayAlbums, key = { it.cid }) { album ->
-                        AlbumCard(album = album, onClick = { onAlbumClick(album.cid) })
-                    }
+        }
+        else -> {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                contentPadding = PaddingValues(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                items(displayAlbums, key = { it.cid }) { album ->
+                    AlbumCard(album = album, onClick = { onAlbumClick(album.cid) })
                 }
             }
         }

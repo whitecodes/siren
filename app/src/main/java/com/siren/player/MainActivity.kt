@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +40,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -45,6 +48,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -139,7 +143,9 @@ class MainActivity : ComponentActivity() {
         val downloadManager = com.siren.player.data.download.DownloadManager(this, db)
         Thread {
             val songs = SirenApi.getAlbumSongs(albumCid)
-            val startIndex = songs.indexOfFirst { it.cid == songCid }.coerceAtLeast(0)
+            android.util.Log.d("SirenPlayer", "playSong: songCid=$songCid, albumCid=$albumCid, songsCount=${songs.size}")
+            val originalIndex = songs.indexOfFirst { it.cid == songCid }
+            android.util.Log.d("SirenPlayer", "playSong: originalIndex=$originalIndex")
             var newIndex = 0
             var foundIndex = 0
             val urls = songs.mapNotNull { song ->
@@ -150,14 +156,17 @@ class MainActivity : ComponentActivity() {
                     runBlocking { downloadManager.enqueue(detail) }
                 }
                 val url = cachedPath ?: detail.sourceUrl
-                if (songs.indexOfFirst { it.cid == song.cid } == startIndex) {
+                if (song.cid == songCid) {
                     foundIndex = newIndex
+                    android.util.Log.d("SirenPlayer", "playSong: found target song at newIndex=$newIndex")
                 }
                 newIndex++
                 url to detail.name
             }
+            android.util.Log.d("SirenPlayer", "playSong: urls.size=${urls.size}, foundIndex=$foundIndex")
             if (urls.isNotEmpty()) {
                 runOnUiThread {
+                    android.util.Log.d("SirenPlayer", "playSong: calling service.play with startIndex=$foundIndex")
                     service.play(urls, foundIndex)
                 }
             }
@@ -237,6 +246,9 @@ fun SirenApp(
             }
         }
     ) {
+        var showSearch by remember { mutableStateOf(false) }
+        val searchQuery by viewModel.searchQuery.collectAsState()
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -244,6 +256,16 @@ fun SirenApp(
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "菜单")
+                        }
+                    },
+                    actions = {
+                        if (currentNavItem == NavigationItem.Album && selectedAlbumCid == null) {
+                            IconButton(onClick = { showSearch = !showSearch }) {
+                                Icon(Icons.Default.Search, contentDescription = "搜索")
+                            }
+                            IconButton(onClick = { viewModel.loadAlbums() }) {
+                                Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -260,6 +282,20 @@ fun SirenApp(
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+                // Search field for Album screen
+                if (currentNavItem == NavigationItem.Album && selectedAlbumCid == null && showSearch) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.searchAlbums(it) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        placeholder = { Text("搜索专辑...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        singleLine = true
+                    )
+                }
+
                 when (currentNavItem) {
                     NavigationItem.Album -> {
                         if (selectedAlbumCid != null) {
