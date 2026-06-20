@@ -29,7 +29,11 @@ enum class TaskStatus {
     PAUSED,
     COMPLETED,
     FAILED,
-    CANCELLED
+    CANCELLED;
+
+    val isActive: Boolean get() = this == PENDING || this == DOWNLOADING || this == PAUSED
+    val isCompleted: Boolean get() = this == COMPLETED
+    val isFailed: Boolean get() = this == FAILED
 }
 
 // ---- Album Entity ----
@@ -127,6 +131,9 @@ interface DownloadTaskDao {
 
     @Query("SELECT * FROM download_tasks WHERE songCid = :songCid LIMIT 1")
     suspend fun getBySongCid(songCid: String): DownloadTask?
+
+    @Query("SELECT * FROM download_tasks WHERE status IN ('COMPLETED', 'FAILED', 'CANCELLED') ORDER BY createdAt DESC")
+    fun getCompletedTasks(): kotlinx.coroutines.flow.Flow<List<DownloadTask>>
 
     @Query("DELETE FROM download_tasks WHERE id = :id")
     suspend fun delete(id: Long)
