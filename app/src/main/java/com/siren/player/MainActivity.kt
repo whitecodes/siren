@@ -124,7 +124,7 @@ class MainActivity : ComponentActivity() {
             val startIndex = songs.indexOfFirst { it.cid == songCid }.coerceAtLeast(0)
             val urls = songs.mapNotNull { song ->
                 val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
-                val cachedPath = runBlocking { (application as SirenApp).database.songCacheDao().getLocalPath(song.cid) }
+                val cachedPath = runBlocking { (application as SirenApp).database.songDao().getLocalPath(song.cid) }
                 val url = cachedPath ?: detail.sourceUrl
                 url to detail.name
             }
@@ -142,7 +142,7 @@ class MainActivity : ComponentActivity() {
             val songs = SirenApi.getAlbumSongs(albumCid)
             val urls = songs.mapNotNull { song ->
                 val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
-                val cachedPath = runBlocking { (application as SirenApp).database.songCacheDao().getLocalPath(song.cid) }
+                val cachedPath = runBlocking { (application as SirenApp).database.songDao().getLocalPath(song.cid) }
                 val url = cachedPath ?: detail.sourceUrl
                 url to detail.name
             }

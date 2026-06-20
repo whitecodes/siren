@@ -4,8 +4,10 @@ import android.content.Context
 import com.siren.player.data.api.AlbumInfo
 import com.siren.player.data.api.SirenApi
 import com.siren.player.data.api.SongDetail
-import com.siren.player.db.CachedSong
+import com.siren.player.db.Album
+import com.siren.player.db.DownloadStatus
 import com.siren.player.db.SirenDatabase
+import com.siren.player.db.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -16,7 +18,8 @@ import java.util.concurrent.TimeUnit
 class MusicRepository(context: Context) {
 
     private val db = SirenDatabase.create(context)
-    private val dao = db.songCacheDao()
+    private val albumDao = db.albumDao()
+    private val songDao = db.songDao()
     private val cacheDir = File(context.cacheDir, "music").also { it.mkdirs() }
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -39,12 +42,15 @@ class MusicRepository(context: Context) {
         SirenApi.getSongDetail(cid)
     }
 
-    suspend fun getCachedPath(cid: String): String? = dao.getLocalPath(cid)
+    suspend fun getCachedPath(cid: String): String? = songDao.getLocalPath(cid)
 
     suspend fun downloadAndCache(song: SongDetail, onProgress: (Float) -> Unit = {}): String? =
         withContext(Dispatchers.IO) {
-            val existing = dao.getLocalPath(song.cid)
+            val existing = songDao.getLocalPath(song.cid)
             if (existing != null && File(existing).exists()) return@withContext existing
+
+            // Update status to downloading
+            songDao.updateStatus(song.cid, DownloadStatus.DOWNLOADING)
 
             val ext = if (song.sourceUrl.endsWith(".wav")) ".wav" else ".mp3"
             val file = File(cacheDir, "${song.cid}$ext")
@@ -70,24 +76,41 @@ class MusicRepository(context: Context) {
                     }
                 }
 
-                dao.insert(
-                    CachedSong(
-                        cid = song.cid,
-                        name = song.name,
-                        albumCid = song.albumCid,
-                        artists = song.artists.joinToString(","),
-                        sourceUrl = song.sourceUrl,
-                        localPath = file.absolutePath
-                    )
-                )
+                // Update song record with local path and downloaded status
+                songDao.updateLocalPath(song.cid, file.absolutePath, DownloadStatus.DOWNLOADED)
 
                 file.absolutePath
             } catch (e: Exception) {
                 e.printStackTrace()
                 file.delete()
+                songDao.updateStatus(song.cid, DownloadStatus.DOWNLOAD_FAILED)
                 null
             }
         }
+
+    suspend fun saveAlbums(albums: List<AlbumInfo>) {
+        albumDao.insertAll(albums.map { album ->
+            Album(
+                cid = album.cid,
+                name = album.name,
+                coverUrl = album.coverUrl,
+                artists = album.artistes.joinToString(",")
+            )
+        })
+    }
+
+    suspend fun saveSongs(songs: List<com.siren.player.data.api.SongInfo>) {
+        songs.forEach { song ->
+            songDao.insert(
+                Song(
+                    cid = song.cid,
+                    name = song.name,
+                    albumCid = song.albumCid,
+                    artists = song.artists.joinToString(",")
+                )
+            )
+        }
+    }
 
     suspend fun clearCache() {
         cacheDir.listFiles()?.forEach { it.delete() }
