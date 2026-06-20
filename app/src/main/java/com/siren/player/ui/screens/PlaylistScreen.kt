@@ -43,7 +43,7 @@ fun PlaylistScreen(musicService: MusicService?) {
     var playlist by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var currentIndex by remember { mutableIntStateOf(0) }
     var isPlaying by remember { mutableStateOf(false) }
-    var playMode by remember { mutableStateOf(PlayMode.ALBUM_STOP) }
+    var playMode by remember { mutableStateOf(PlayMode.LIST_STOP) }
 
     // Poll for state changes
     DisposableEffect(musicService) {

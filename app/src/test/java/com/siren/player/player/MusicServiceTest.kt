@@ -15,18 +15,18 @@ class MusicServiceTest {
     @Test
     fun nextModeCyclesCorrectly() {
         assertEquals(PlayMode.SINGLE_STOP, PlayMode.SINGLE_LOOP.next())
-        assertEquals(PlayMode.ALBUM_LOOP, PlayMode.SINGLE_STOP.next())
-        assertEquals(PlayMode.ALBUM_STOP, PlayMode.ALBUM_LOOP.next())
-        assertEquals(PlayMode.ALBUM_SHUFFLE, PlayMode.ALBUM_STOP.next())
-        assertEquals(PlayMode.SINGLE_LOOP, PlayMode.ALBUM_SHUFFLE.next())
+        assertEquals(PlayMode.LIST_LOOP, PlayMode.SINGLE_STOP.next())
+        assertEquals(PlayMode.LIST_STOP, PlayMode.LIST_LOOP.next())
+        assertEquals(PlayMode.LIST_SHUFFLE, PlayMode.LIST_STOP.next())
+        assertEquals(PlayMode.SINGLE_LOOP, PlayMode.LIST_SHUFFLE.next())
     }
 
     @Test
     fun playModeDisplayNames() {
         assertEquals("单曲循环", PlayMode.SINGLE_LOOP.displayName)
-        assertEquals("单曲停止", PlayMode.SINGLE_STOP.displayName)
-        assertEquals("专辑循环", PlayMode.ALBUM_LOOP.displayName)
-        assertEquals("专辑停止", PlayMode.ALBUM_STOP.displayName)
-        assertEquals("专辑内随机", PlayMode.ALBUM_SHUFFLE.displayName)
+        assertEquals("单曲结束", PlayMode.SINGLE_STOP.displayName)
+        assertEquals("列表循环", PlayMode.LIST_LOOP.displayName)
+        assertEquals("列表停止", PlayMode.LIST_STOP.displayName)
+        assertEquals("列表随机", PlayMode.LIST_SHUFFLE.displayName)
     }
 }

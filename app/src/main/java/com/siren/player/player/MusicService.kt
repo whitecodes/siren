@@ -22,7 +22,7 @@ class MusicService : Service() {
 
     private val binder = LocalBinder()
     private var exoPlayer: ExoPlayer? = null
-    private var currentPlayMode = PlayMode.ALBUM_STOP
+    private var currentPlayMode = PlayMode.LIST_STOP
     private var _currentTrackIndex = 0
     var onPlaybackStateChange: (() -> Unit)? = null
     var onTrackChange: (() -> Unit)? = null
@@ -113,7 +113,7 @@ class MusicService : Service() {
             PlayMode.SINGLE_STOP -> {
                 exoPlayer?.pause()
             }
-            PlayMode.ALBUM_LOOP -> {
+            PlayMode.LIST_LOOP -> {
                 exoPlayer?.let { player ->
                     if (player.currentMediaItemIndex >= player.mediaItemCount - 1) {
                         player.seekTo(0)
@@ -121,10 +121,10 @@ class MusicService : Service() {
                     }
                 }
             }
-            PlayMode.ALBUM_STOP -> {
+            PlayMode.LIST_STOP -> {
                 // Default behavior - stop at end
             }
-            PlayMode.ALBUM_SHUFFLE -> {
+            PlayMode.LIST_SHUFFLE -> {
                 exoPlayer?.let { player ->
                     if (player.currentMediaItemIndex >= player.mediaItemCount - 1) {
                         player.seekTo(0)
@@ -183,7 +183,7 @@ class MusicService : Service() {
         val player = exoPlayer ?: return
         if (player.hasNextMediaItem()) {
             player.seekToNext()
-        } else if (currentPlayMode == PlayMode.ALBUM_LOOP || currentPlayMode == PlayMode.ALBUM_SHUFFLE) {
+        } else if (currentPlayMode == PlayMode.LIST_LOOP || currentPlayMode == PlayMode.LIST_SHUFFLE) {
             player.seekTo(0)
             player.play()
         }
@@ -215,16 +215,16 @@ class MusicService : Service() {
                 player.repeatMode = Player.REPEAT_MODE_OFF
                 player.shuffleModeEnabled = false
             }
-            PlayMode.ALBUM_LOOP -> {
+            PlayMode.LIST_LOOP -> {
                 player.repeatMode = Player.REPEAT_MODE_ALL
                 player.shuffleModeEnabled = false
             }
-            PlayMode.ALBUM_STOP -> {
+            PlayMode.LIST_STOP -> {
                 player.repeatMode = Player.REPEAT_MODE_OFF
                 player.shuffleModeEnabled = false
             }
-            PlayMode.ALBUM_SHUFFLE -> {
-                player.repeatMode = Player.REPEAT_MODE_OFF
+            PlayMode.LIST_SHUFFLE -> {
+                player.repeatMode = Player.REPEAT_MODE_ALL
                 player.shuffleModeEnabled = true
             }
         }

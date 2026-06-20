@@ -241,7 +241,7 @@ fun SirenApp(
         var showSearch by remember { mutableStateOf(false) }
         val searchQuery by viewModel.searchQuery.collectAsState()
         var showPlayModeMenu by remember { mutableStateOf(false) }
-        var currentPlayMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.ALBUM_STOP) }
+        var currentPlayMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.LIST_STOP) }
 
         // Poll play mode when on playlist screen
         DisposableEffect(musicService, currentNavItem) {

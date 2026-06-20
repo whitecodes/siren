@@ -13,17 +13,17 @@ class PlaylistScreenTest {
         assertEquals(5, modes.size)
         assertTrue(modes.contains(PlayMode.SINGLE_LOOP))
         assertTrue(modes.contains(PlayMode.SINGLE_STOP))
-        assertTrue(modes.contains(PlayMode.ALBUM_LOOP))
-        assertTrue(modes.contains(PlayMode.ALBUM_STOP))
-        assertTrue(modes.contains(PlayMode.ALBUM_SHUFFLE))
+        assertTrue(modes.contains(PlayMode.LIST_LOOP))
+        assertTrue(modes.contains(PlayMode.LIST_STOP))
+        assertTrue(modes.contains(PlayMode.LIST_SHUFFLE))
     }
 
     @Test
     fun playModeDisplayNames() {
         assertEquals("单曲循环", PlayMode.SINGLE_LOOP.displayName)
-        assertEquals("单曲停止", PlayMode.SINGLE_STOP.displayName)
-        assertEquals("专辑循环", PlayMode.ALBUM_LOOP.displayName)
-        assertEquals("专辑停止", PlayMode.ALBUM_STOP.displayName)
-        assertEquals("专辑内随机", PlayMode.ALBUM_SHUFFLE.displayName)
+        assertEquals("单曲结束", PlayMode.SINGLE_STOP.displayName)
+        assertEquals("列表循环", PlayMode.LIST_LOOP.displayName)
+        assertEquals("列表停止", PlayMode.LIST_STOP.displayName)
+        assertEquals("列表随机", PlayMode.LIST_SHUFFLE.displayName)
     }
 }

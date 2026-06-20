@@ -69,7 +69,7 @@ fun PlayerScreen(
     var currentPos by remember { mutableLongStateOf(musicService?.currentPosition ?: 0) }
     var duration by remember { mutableLongStateOf(musicService?.duration ?: 0) }
     var title by remember { mutableStateOf(musicService?.currentTitle ?: "") }
-    var playMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.ALBUM_STOP) }
+    var playMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.LIST_STOP) }
 
     // T1.10.7: Rotation animation for cover
     val infiniteTransition = rememberInfiniteTransition(label = "rotation")
@@ -201,11 +201,11 @@ fun PlayerScreen(
                     Icon(
                         when (playMode) {
                             PlayMode.SINGLE_LOOP -> Icons.Default.RepeatOne
-                            PlayMode.ALBUM_SHUFFLE -> Icons.Default.Shuffle
+                            PlayMode.LIST_SHUFFLE -> Icons.Default.Shuffle
                             else -> Icons.Default.Repeat
                         },
                         contentDescription = playMode.displayName,
-                        tint = if (playMode != PlayMode.ALBUM_STOP) MaterialTheme.colorScheme.primary
+                        tint = if (playMode != PlayMode.LIST_STOP) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }
