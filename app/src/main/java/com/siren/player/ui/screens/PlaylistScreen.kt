@@ -31,6 +31,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,30 +41,35 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.siren.player.player.MusicService
 import com.siren.player.player.PlayMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistScreen(musicService: MusicService?) {
     var playlist by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
-    var currentIndex by remember { mutableStateOf(0) }
+    var currentIndex by remember { mutableIntStateOf(0) }
     var isPlaying by remember { mutableStateOf(false) }
     var playMode by remember { mutableStateOf(PlayMode.ALBUM_STOP) }
     var showPlayModeMenu by remember { mutableStateOf(false) }
 
+    // Poll for state changes
     DisposableEffect(musicService) {
         val svc = musicService ?: return@DisposableEffect onDispose {}
-        val callback = {
-            playlist = svc.getPlaylist()
-            currentIndex = svc.currentMediaItemIndex
-            isPlaying = svc.isPlaying
-            playMode = svc.playMode
+        val scope = CoroutineScope(Dispatchers.Main)
+        val job = scope.launch {
+            while (true) {
+                playlist = svc.getPlaylist()
+                currentIndex = svc.currentMediaItemIndex
+                isPlaying = svc.isPlaying
+                playMode = svc.playMode
+                delay(200)
+            }
         }
-        svc.onPlaybackStateChange = callback
-        svc.onTrackChange = callback
-        callback()
         onDispose {
-            svc.onPlaybackStateChange = null
-            svc.onTrackChange = null
+            job.cancel()
         }
     }
 
