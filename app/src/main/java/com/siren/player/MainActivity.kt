@@ -284,13 +284,56 @@ fun SirenApp(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(R.string.album_name),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(16.dp)
-                )
+            ModalDrawerSheet(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Brand Header with logo
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    // Brand logo image
+                    coil.compose.AsyncImage(
+                        model = "https://web.hycdn.cn/hg_web_sdk/lib/assets/copyright.34c739e28f189ed9d13a.png",
+                        contentDescription = "塞壬唱片 Logo",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        text = "塞壬唱片",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "A WORLD FAMILIARLY UNKNOWN",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Copyright info
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "上海鹰角网络科技有限公司",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        )
+                    }
+                }
+                
                 NavigationItem.entries.forEach { item ->
                     NavigationDrawerItem(
                         icon = { Icon(item.icon, contentDescription = stringResource(item.titleResId)) },
