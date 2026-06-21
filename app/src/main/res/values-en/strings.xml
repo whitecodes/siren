@@ -20,6 +20,7 @@
     <string name="no_content">No content</string>
     <string name="tap_to_refresh">Tap to refresh</string>
     <string name="songs_count">%d songs</string>
+    <string name="album_name">Siren Records</string>
 
     <!-- Player -->
     <string name="now_playing">Now Playing</string>

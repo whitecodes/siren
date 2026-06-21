@@ -45,9 +45,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.siren.player.R
 import com.siren.player.player.MusicService
 import com.siren.player.player.PlayMode
 import kotlinx.coroutines.CoroutineScope
@@ -94,7 +96,7 @@ fun PlayerScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("正在播放") },
+            title = { Text(stringResource(R.string.now_playing)) },
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
@@ -196,7 +198,7 @@ fun PlayerScreen(
                             PlayMode.LIST_SHUFFLE -> Icons.Default.Shuffle
                             else -> Icons.Default.Repeat
                         },
-                        contentDescription = playMode.displayName,
+                        contentDescription = stringResource(playMode.displayNameResId),
                         tint = if (playMode != PlayMode.LIST_STOP) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
@@ -240,7 +242,7 @@ fun PlayerScreen(
                 }
 
                 Text(
-                    text = playMode.displayName,
+                    text = stringResource(playMode.displayNameResId),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )

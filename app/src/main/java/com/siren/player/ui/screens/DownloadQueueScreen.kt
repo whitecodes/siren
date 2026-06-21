@@ -29,8 +29,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.siren.player.R
 import com.siren.player.data.download.DownloadItem
 import com.siren.player.data.download.DownloadQueue
 
@@ -47,7 +49,7 @@ fun DownloadQueueScreen() {
         // Active Downloads Section
         item {
             Text(
-                text = "进行中 (${activeTasks.size})",
+                text = stringResource(R.string.active_downloads, activeTasks.size),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -56,7 +58,7 @@ fun DownloadQueueScreen() {
         if (activeTasks.isEmpty()) {
             item {
                 Text(
-                    text = "暂无下载任务",
+                    text = stringResource(R.string.no_download_tasks),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
@@ -73,7 +75,7 @@ fun DownloadQueueScreen() {
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "已完成 (${completedTasks.size})",
+                text = stringResource(R.string.completed_downloads, completedTasks.size),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
@@ -82,7 +84,7 @@ fun DownloadQueueScreen() {
         if (completedTasks.isEmpty()) {
             item {
                 Text(
-                    text = "暂无历史下载",
+                    text = stringResource(R.string.no_download_history),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )

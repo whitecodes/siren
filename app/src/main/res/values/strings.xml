@@ -20,6 +20,7 @@
     <string name="no_content">暂无内容</string>
     <string name="tap_to_refresh">点击刷新重试</string>
     <string name="songs_count">%d 首歌曲</string>
+    <string name="album_name">塞壬唱片</string>
 
     <!-- Player -->
     <string name="now_playing">正在播放</string>

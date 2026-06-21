@@ -32,9 +32,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.siren.player.R
 import com.siren.player.data.api.SongInfo
 import com.siren.player.data.download.DownloadEvent
 import com.siren.player.data.download.DownloadManager
@@ -137,7 +139,7 @@ fun AlbumDetailScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "${album!!.songs.size} 首歌曲",
+                            text = stringResource(R.string.songs_count, album!!.songs.size),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )

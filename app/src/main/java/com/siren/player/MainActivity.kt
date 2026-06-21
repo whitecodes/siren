@@ -66,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
@@ -250,7 +251,7 @@ fun SirenApp(
             ModalDrawerSheet {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "塞壬唱片",
+                    text = stringResource(R.string.album_name),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(16.dp)
                 )
@@ -342,7 +343,7 @@ fun SirenApp(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = currentPlayMode.displayName,
+                                        text = stringResource(currentPlayMode.displayNameResId),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                                         maxLines = 1
@@ -363,7 +364,7 @@ fun SirenApp(
                                         DropdownMenuItem(
                                             text = {
                                                 Text(
-                                                    text = mode.displayName,
+                                                    text = stringResource(mode.displayNameResId),
                                                     color = if (currentPlayMode == mode) MaterialTheme.colorScheme.primary
                                                            else MaterialTheme.colorScheme.onSurface
                                                 )
