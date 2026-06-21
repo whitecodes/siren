@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -65,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.siren.player.data.api.SirenApi
 import com.siren.player.player.MusicService
@@ -203,6 +205,16 @@ fun SirenApp(
     var currentNavItem by remember { mutableStateOf(NavigationItem.Album) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // Handle back navigation
+    BackHandler {
+        when {
+            showPlayer -> showPlayer = false
+            selectedAlbumCid != null -> selectedAlbumCid = null
+            drawerState.isOpen -> scope.launch { drawerState.close() }
+            currentNavItem != NavigationItem.Album -> currentNavItem = NavigationItem.Album
+        }
+    }
 
     if (showPlayer && musicService != null) {
         PlayerScreen(
