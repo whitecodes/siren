@@ -1,10 +1,5 @@
 package com.siren.player.ui.screens
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,9 +44,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.siren.player.player.MusicService
 import com.siren.player.player.PlayMode
 import kotlinx.coroutines.CoroutineScope
@@ -63,24 +59,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun PlayerScreen(
     musicService: MusicService?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    coverUrl: String? = null
 ) {
     var isPlaying by remember { mutableStateOf(musicService?.isPlaying == true) }
     var currentPos by remember { mutableLongStateOf(musicService?.currentPosition ?: 0) }
     var duration by remember { mutableLongStateOf(musicService?.duration ?: 0) }
     var title by remember { mutableStateOf(musicService?.currentTitle ?: "") }
     var playMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.LIST_STOP) }
-
-    // T1.10.7: Rotation animation for cover
-    val infiniteTransition = rememberInfiniteTransition(label = "rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 10000, easing = LinearEasing)
-        ),
-        label = "rotation"
-    )
 
     DisposableEffect(musicService) {
         val service = musicService ?: return@DisposableEffect onDispose {}
@@ -127,24 +113,30 @@ fun PlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // T1.10.6: Remove rounded corners from cover
-            // T1.10.7: Add rotation animation when playing
+            // Album cover
             Card(
-                modifier = Modifier
-                    .size(240.dp)
-                    .rotate(if (isPlaying) rotation else 0f),
+                modifier = Modifier.size(240.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    )
+                    if (coverUrl != null) {
+                        AsyncImage(
+                            model = coverUrl,
+                            contentDescription = "专辑封面",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.MusicNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        )
+                    }
                 }
             }
 

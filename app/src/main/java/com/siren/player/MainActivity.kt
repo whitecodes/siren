@@ -222,9 +222,11 @@ fun SirenApp(
     }
 
     if (showPlayer && musicService != null) {
+        val currentCoverUrl = viewModel.currentAlbum.collectAsState().value?.coverUrl
         PlayerScreen(
             musicService = musicService,
-            onBack = { showPlayer = false }
+            onBack = { showPlayer = false },
+            coverUrl = currentCoverUrl
         )
         return
     }
