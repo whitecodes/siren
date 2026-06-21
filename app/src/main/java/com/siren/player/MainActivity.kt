@@ -12,9 +12,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -72,7 +69,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.BackHandler
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.siren.player.data.api.SirenApi
 import com.siren.player.player.MusicService
@@ -113,24 +110,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun showLanguageChangeDialog(mode: LanguageMode) {
-        android.util.Log.d("SirenApp", "showLanguageChangeDialog called with mode: $mode")
-        try {
-            android.app.AlertDialog.Builder(this)
-                .setTitle("切换语言")
-                .setMessage("切换语言需要退出应用，是否立即退出？")
-                .setPositiveButton("确定") { _, _ ->
-                    LanguageManager.setLanguageMode(mode)
-                    finishAffinity()
-                }
-                .setNegativeButton("取消", null)
-                .show()
-            android.util.Log.d("SirenApp", "AlertDialog.show() called")
-        } catch (e: Exception) {
-            android.util.Log.e("SirenApp", "Error showing dialog", e)
-        }
-    }
-
     override fun attachBaseContext(newBase: android.content.Context) {
         val locale = LanguageManager.getLocale()
         if (locale != null) {
@@ -161,7 +140,8 @@ class MainActivity : ComponentActivity() {
                 SirenApp(
                     musicService = musicService,
                     onPlaySong = ::playSong,
-                    onPlayAlbum = ::playAlbum
+                    onPlayAlbum = ::playAlbum,
+                    onLanguageChange = ::showLanguageChangeDialog
                 )
             }
         }
@@ -178,6 +158,18 @@ class MainActivity : ComponentActivity() {
                 bindService(intent, connection, BIND_AUTO_CREATE)
             }
         }
+    }
+
+    fun showLanguageChangeDialog(mode: LanguageMode) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("切换语言")
+            .setMessage("切换语言需要退出应用，是否立即退出？")
+            .setPositiveButton("确定") { _, _ ->
+                LanguageManager.setLanguageMode(mode)
+                finishAffinity()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     override fun onDestroy() {
@@ -206,7 +198,6 @@ class MainActivity : ComponentActivity() {
         val db = (application as SirenApp).database
         val repository = com.siren.player.data.repository.MusicRepository(application)
         Thread {
-            // Use same order as album detail page (reverse API order)
             val songs = kotlinx.coroutines.runBlocking { repository.getAlbumSongs(albumCid) }
             val startIndex = songs.indexOfFirst { it.cid == songCid }.coerceAtLeast(0)
             val urls = songs.mapNotNull { song ->
@@ -228,7 +219,6 @@ class MainActivity : ComponentActivity() {
         val db = (application as SirenApp).database
         val repository = com.siren.player.data.repository.MusicRepository(application)
         Thread {
-            // Use same order as album detail page (reverse API order)
             val songs = kotlinx.coroutines.runBlocking { repository.getAlbumSongs(albumCid) }
             val urls = songs.mapNotNull { song ->
                 val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
@@ -250,7 +240,8 @@ class MainActivity : ComponentActivity() {
 fun SirenApp(
     musicService: MusicService?,
     onPlaySong: (String, String, String) -> Unit,
-    onPlayAlbum: (String) -> Unit
+    onPlayAlbum: (String) -> Unit,
+    onLanguageChange: (LanguageMode) -> Unit
 ) {
     val viewModel: SirenViewModel = viewModel()
     var selectedAlbumCid by remember { mutableStateOf<String?>(null) }
@@ -267,7 +258,6 @@ fun SirenApp(
             selectedAlbumCid != null -> selectedAlbumCid = null
             drawerState.isOpen -> scope.launch { drawerState.close() }
             else -> {
-                // At first level (album list or other pages), minimize app
                 (context as? ComponentActivity)?.moveTaskToBack(true)
             }
         }
@@ -318,7 +308,7 @@ fun SirenApp(
         // Poll play mode when on playlist screen
         DisposableEffect(musicService, currentNavItem) {
             if (currentNavItem == NavigationItem.Playlist && musicService != null) {
-                val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
+                val scope = CoroutineScope(Dispatchers.Main)
                 val job = scope.launch {
                     while (true) {
                         currentPlayMode = musicService.playMode
@@ -341,56 +331,52 @@ fun SirenApp(
                                 overflow = TextOverflow.Ellipsis
                             )
                         } else {
-                            Text(currentNavItem.title)
+                            Text(stringResource(currentNavItem.titleResId))
                         }
                     },
                     navigationIcon = {
                         if (currentNavItem == NavigationItem.Album && selectedAlbumCid != null) {
                             IconButton(onClick = { selectedAlbumCid = null }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                             }
                         } else {
                             IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = "菜单")
+                                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
                             }
                         }
                     },
                     actions = {
                         if (currentNavItem == NavigationItem.Album) {
                             if (selectedAlbumCid == null) {
-                                // Album list view - show search and refresh
                                 IconButton(onClick = { showSearch = !showSearch }) {
-                                    Icon(Icons.Default.Search, contentDescription = "搜索")
+                                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
                                 }
                                 IconButton(onClick = { viewModel.loadAlbums(forceRefresh = true) }) {
-                                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                                 }
                             } else {
-                                // Album detail view - show refresh only
                                 IconButton(onClick = { viewModel.refreshAlbum() }) {
-                                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                                 }
                             }
                         } else if (currentNavItem == NavigationItem.Playlist) {
-                            // Playlist view - show play mode dropdown (single line)
                             Box {
                                 Row(
                                     modifier = Modifier
-                                        .clickable { showPlayModeMenu = !showPlayModeMenu }
+                                        .clickable { showPlayModeMenu = true }
                                         .padding(horizontal = 8.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = stringResource(currentPlayMode.displayNameResId),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        maxLines = 1
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                     Icon(
                                         if (showPlayModeMenu) Icons.Default.ArrowDropUp
                                         else Icons.Default.ArrowDropDown,
-                                        contentDescription = "选择播放模式",
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                        contentDescription = stringResource(R.string.select_play_mode),
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -432,7 +418,6 @@ fun SirenApp(
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-                // Search field for Album screen
                 if (currentNavItem == NavigationItem.Album && selectedAlbumCid == null && showSearch) {
                     OutlinedTextField(
                         value = searchQuery,
@@ -440,7 +425,7 @@ fun SirenApp(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                        placeholder = { Text("搜索专辑...") },
+                        placeholder = { Text(stringResource(R.string.search_album)) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         singleLine = true
                     )
@@ -451,8 +436,7 @@ fun SirenApp(
                         if (selectedAlbumCid != null) {
                             AlbumDetailScreen(
                                 viewModel = viewModel,
-                                onPlaySong = onPlaySong,
-                                downloadManager = viewModel.downloadManager
+                                onPlaySong = onPlaySong
                             )
                         } else {
                             AlbumListScreen(
@@ -473,7 +457,7 @@ fun SirenApp(
                     NavigationItem.Settings -> {
                         SettingsScreen(
                             viewModel = viewModel,
-                            onLanguageChange = ::showLanguageChangeDialog
+                            onLanguageChange = onLanguageChange
                         )
                     }
                     NavigationItem.About -> {
@@ -496,13 +480,13 @@ fun MiniPlayerBar(
 
     DisposableEffect(musicService) {
         val svc = musicService ?: return@DisposableEffect onDispose {}
-        val scope = CoroutineScope(Dispatchers.Main)
         val callback = {
             isPlaying = svc.isPlaying
             title = svc.currentTitle
         }
         svc.onPlaybackStateChange = callback
         callback()
+        val scope = CoroutineScope(Dispatchers.Main)
         val job = scope.launch {
             while (true) {
                 isPlaying = svc.isPlaying
@@ -544,7 +528,7 @@ fun MiniPlayerBar(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = title.ifEmpty { "塞壬唱片" },
+                text = title.ifEmpty { stringResource(R.string.album_name) },
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -553,14 +537,14 @@ fun MiniPlayerBar(
             IconButton(onClick = { musicService?.togglePlayPause() }) {
                 Icon(
                     if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "暂停" else "播放",
+                    contentDescription = if (isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
                     modifier = Modifier.size(28.dp)
                 )
             }
             IconButton(onClick = { musicService?.skipToNext() }) {
                 Icon(
                     Icons.Default.SkipNext,
-                    contentDescription = "下一曲",
+                    contentDescription = stringResource(R.string.next),
                     modifier = Modifier.size(28.dp)
                 )
             }
