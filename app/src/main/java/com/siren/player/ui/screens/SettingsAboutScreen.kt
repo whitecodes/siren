@@ -1,6 +1,8 @@
 package com.siren.player.ui.screens
 
 import android.net.Uri
+import android.os.Environment
+import android.provider.DocumentsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -26,9 +28,26 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.siren.player.ui.SirenViewModel
 import kotlinx.coroutines.launch
+import java.io.File
+
+fun uriToPath(uri: Uri): String {
+    val docId = DocumentsContract.getTreeDocumentId(uri)
+    if (docId.startsWith("primary:")) {
+        return Environment.getExternalStorageDirectory().absolutePath + "/" + docId.removePrefix("primary:")
+    }
+    // Handle external SD card
+    val split = docId.split(":")
+    if (split.size >= 2) {
+        val volId = split[0]
+        val path = split[1]
+        return "/storage/$volId/$path"
+    }
+    return uri.toString()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +60,8 @@ fun SettingsScreen(viewModel: SirenViewModel) {
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
         uri?.let {
-            viewModel.setDownloadPath(it.toString())
+            val path = uriToPath(it)
+            viewModel.setDownloadPath(path)
         }
     }
 
