@@ -12,6 +12,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -132,18 +135,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Defer service start to after activity is visible (Android 16 requirement)
-        window.decorView.post {
-            Intent(this, MusicService::class.java).also { intent ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(intent)
-                } else {
-                    startService(intent)
-                }
-                bindService(intent, connection, BIND_AUTO_CREATE)
-            }
-        }
-
         requestPermissions()
 
         setContent {
@@ -153,6 +144,19 @@ class MainActivity : ComponentActivity() {
                     onPlaySong = ::playSong,
                     onPlayAlbum = ::playAlbum
                 )
+            }
+        }
+
+        // Start service after activity is visible
+        lifecycleScope.launch {
+            delay(500)
+            Intent(this@MainActivity, MusicService::class.java).also { intent ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(intent)
+                } else {
+                    startService(intent)
+                }
+                bindService(intent, connection, BIND_AUTO_CREATE)
             }
         }
     }
