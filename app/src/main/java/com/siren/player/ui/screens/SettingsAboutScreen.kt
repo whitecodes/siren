@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MusicNote
@@ -31,15 +32,20 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -83,6 +89,7 @@ fun SettingsScreen(
 ) {
     val scope = rememberCoroutineScope()
     var showClearCacheDialog by remember { mutableStateOf(false) }
+    var showLanguageDropdown by remember { mutableStateOf(false) }
     val downloadPath by viewModel.downloadPath.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val languageMode by LanguageManager.languageMode.collectAsState()
@@ -97,6 +104,12 @@ fun SettingsScreen(
         }
     }
 
+    val currentLanguageLabel = when (languageMode) {
+        LanguageMode.CHINESE -> stringResource(R.string.lang_chinese)
+        LanguageMode.ENGLISH -> stringResource(R.string.lang_english)
+        LanguageMode.SYSTEM -> stringResource(R.string.lang_system)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -109,48 +122,61 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Language Section
-        Text(
-            text = stringResource(R.string.language),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // Language Setting - single row
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            LanguageMode.entries.forEach { mode ->
-                val isSelected = languageMode == mode
-                val label = when (mode) {
-                    LanguageMode.CHINESE -> stringResource(R.string.lang_chinese)
-                    LanguageMode.ENGLISH -> stringResource(R.string.lang_english)
-                    LanguageMode.SYSTEM -> stringResource(R.string.lang_system)
-                }
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable(enabled = !isSelected) {
-                            android.util.Log.d("SirenApp", "Language clicked: $mode")
-                            onLanguageChange(mode)
-                        },
-                    shape = RoundedCornerShape(0.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
+            Text(
+                text = stringResource(R.string.language),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+
+            Box {
+                Row(
+                    modifier = Modifier.clickable { showLanguageDropdown = true },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = label,
-                        modifier = Modifier.padding(12.dp),
+                        text = currentLanguageLabel,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
-            }
+
+                DropdownMenu(
+                    expanded = showLanguageDropdown,
+                    onDismissRequest = { showLanguageDropdown = false }
+                ) {
+                    LanguageMode.entries.forEach { mode ->
+                        val label = when (mode) {
+                            LanguageMode.CHINESE -> stringResource(R.string.lang_chinese)
+                            LanguageMode.ENGLISH -> stringResource(R.string.lang_english)
+                            LanguageMode.SYSTEM -> stringResource(R.string.lang_system)
+                        }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = label,
+                                    color = if (languageMode == mode) MaterialTheme.colorScheme.primary
+                                           else MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = {
+                                showLanguageDropdown = false
+                                if (mode != languageMode) {
+                                    onLanguageChange(mode)
+                                }
+                            }
+                        )
+                    }
+                }
             }
         }
 
@@ -339,7 +365,7 @@ fun AboutScreen() {
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             AboutFeatureItem(
                 icon = Icons.Default.Favorite,

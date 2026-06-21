@@ -37,6 +37,15 @@ class MusicService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        
+        // Start foreground immediately to avoid ANR
+        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle("塞壬唱片")
+            .setContentText("音乐播放服务")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .build()
+        startForeground(NOTIFICATION_ID, notification)
+
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
