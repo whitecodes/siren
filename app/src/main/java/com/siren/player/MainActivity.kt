@@ -287,7 +287,8 @@ fun SirenApp(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier.width(260.dp)
+                modifier = Modifier.width(260.dp),
+                drawerShape = RoundedCornerShape(0.dp)
             ) {
                 // Brand Header with cropped logo
                 Box(
