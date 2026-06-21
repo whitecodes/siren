@@ -64,6 +64,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
@@ -205,6 +206,7 @@ fun SirenApp(
     var currentNavItem by remember { mutableStateOf(NavigationItem.Album) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // Handle back navigation
     BackHandler {
@@ -212,7 +214,10 @@ fun SirenApp(
             showPlayer -> showPlayer = false
             selectedAlbumCid != null -> selectedAlbumCid = null
             drawerState.isOpen -> scope.launch { drawerState.close() }
-            currentNavItem != NavigationItem.Album -> currentNavItem = NavigationItem.Album
+            else -> {
+                // At first level (album list or other pages), minimize app
+                (context as? ComponentActivity)?.moveTaskToBack(true)
+            }
         }
     }
 
