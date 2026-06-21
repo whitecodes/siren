@@ -4,8 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.provider.DocumentsContract
-import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -79,11 +77,12 @@ fun uriToPath(uri: Uri): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: SirenViewModel) {
+fun SettingsScreen(
+    viewModel: SirenViewModel,
+    onLanguageChange: (LanguageMode) -> Unit = {}
+) {
     val scope = rememberCoroutineScope()
     var showClearCacheDialog by remember { mutableStateOf(false) }
-    var showLanguageChangeDialog by remember { mutableStateOf(false) }
-    var pendingLanguageMode by remember { mutableStateOf<LanguageMode?>(null) }
     val downloadPath by viewModel.downloadPath.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val languageMode by LanguageManager.languageMode.collectAsState()
@@ -132,11 +131,8 @@ fun SettingsScreen(viewModel: SirenViewModel) {
                 }
                 Button(
                     onClick = {
-                        Log.d("SettingsScreen", "Language button clicked: $mode, current: $languageMode, isSelected: $isSelected")
                         if (!isSelected) {
-                            pendingLanguageMode = mode
-                            showLanguageChangeDialog = true
-                            Log.d("SettingsScreen", "showLanguageChangeDialog set to true")
+                            onLanguageChange(mode)
                         }
                     },
                     modifier = Modifier.weight(1f),
@@ -266,42 +262,193 @@ fun SettingsScreen(viewModel: SirenViewModel) {
             }
         )
     }
+}
 
-    // Language change dialog
-    if (showLanguageChangeDialog) {
-        Log.d("SettingsScreen", "Showing language change dialog")
-        AlertDialog(
-            onDismissRequest = {
-                showLanguageChangeDialog = false
-                pendingLanguageMode = null
-            },
-            title = { Text(stringResource(R.string.language_change_title)) },
-            text = { Text(stringResource(R.string.language_change_message)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pendingLanguageMode?.let { mode ->
-                            LanguageManager.setLanguageMode(mode)
-                        }
-                        showLanguageChangeDialog = false
-                        pendingLanguageMode = null
-                        // Exit app completely
-                        (context as? ComponentActivity)?.finishAffinity()
-                    }
-                ) {
-                    Text(stringResource(R.string.confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showLanguageChangeDialog = false
-                        pendingLanguageMode = null
-                    }
-                ) {
-                    Text(stringResource(R.string.cancel))
+@Composable
+fun AboutScreen() {
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surface,
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    )
+                )
+            )
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(48.dp))
+
+        Card(
+            modifier = Modifier.size(100.dp),
+            shape = CircleShape,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.MusicNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp),
+                    tint = Color.White
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = stringResource(R.string.app_slogan),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            letterSpacing = 2.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.version),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            AboutFeatureItem(
+                icon = Icons.Default.Favorite,
+                label = stringResource(R.string.feature_love),
+                color = MaterialTheme.colorScheme.error
+            )
+            AboutFeatureItem(
+                icon = Icons.Default.MusicNote,
+                label = stringResource(R.string.feature_music),
+                color = MaterialTheme.colorScheme.primary
+            )
+            AboutFeatureItem(
+                icon = Icons.Default.Star,
+                label = stringResource(R.string.feature_quality),
+                color = MaterialTheme.colorScheme.tertiary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = stringResource(R.string.about_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/whitecodes/siren")
+                    )
+                    context.startActivity(intent)
+                },
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Code,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.github),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = stringResource(R.string.github_url),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Text(
+            text = stringResource(R.string.made_with),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+        )
+    }
+}
+
+@Composable
+fun AboutFeatureItem(
+    icon: ImageVector,
+    label: String,
+    color: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Card(
+            modifier = Modifier.size(56.dp),
+            shape = CircleShape,
+            colors = CardDefaults.cardColors(
+                containerColor = color.copy(alpha = 0.1f)
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = label,
+                    modifier = Modifier.size(28.dp),
+                    tint = color
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
     }
 }

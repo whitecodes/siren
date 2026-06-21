@@ -87,6 +87,7 @@ import com.siren.player.ui.screens.PlayerScreen
 import com.siren.player.ui.screens.SettingsScreen
 import com.siren.player.ui.screens.AboutScreen
 import com.siren.player.ui.theme.LanguageManager
+import com.siren.player.ui.theme.LanguageMode
 import com.siren.player.ui.theme.SirenTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -110,6 +111,18 @@ class MainActivity : ComponentActivity() {
             musicService = null
             bound = false
         }
+    }
+
+    fun showLanguageChangeDialog(mode: LanguageMode) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("切换语言")
+            .setMessage("切换语言需要退出应用，是否立即退出？")
+            .setPositiveButton("确定") { _, _ ->
+                LanguageManager.setLanguageMode(mode)
+                finishAffinity()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     override fun attachBaseContext(newBase: android.content.Context) {
@@ -452,7 +465,10 @@ fun SirenApp(
                         DownloadQueueScreen()
                     }
                     NavigationItem.Settings -> {
-                        SettingsScreen(viewModel = viewModel)
+                        SettingsScreen(
+                            viewModel = viewModel,
+                            onLanguageChange = ::showLanguageChangeDialog
+                        )
                     }
                     NavigationItem.About -> {
                         AboutScreen()
