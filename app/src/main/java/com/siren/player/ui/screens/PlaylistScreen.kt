@@ -28,8 +28,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.siren.player.R
 import com.siren.player.player.MusicService
 import com.siren.player.player.PlayMode
 import kotlinx.coroutines.CoroutineScope
@@ -70,7 +72,7 @@ fun PlaylistScreen(musicService: MusicService?) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "暂无播放内容",
+                text = stringResource(R.string.no_playlist),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )

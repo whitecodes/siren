@@ -203,7 +203,7 @@ fun SongItem(
             DownloadStatus.DOWNLOADED -> {
                 Icon(
                     Icons.Default.Check,
-                    contentDescription = "已下载",
+                    contentDescription = stringResource(R.string.downloaded),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -222,7 +222,7 @@ fun SongItem(
                 ) {
                     Icon(
                         Icons.Default.Download,
-                        contentDescription = "下载",
+                        contentDescription = stringResource(R.string.download),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         modifier = Modifier.size(18.dp)
                     )

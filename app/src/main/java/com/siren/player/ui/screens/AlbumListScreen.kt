@@ -24,8 +24,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.siren.player.R
 import com.siren.player.data.api.AlbumInfo
 import com.siren.player.ui.SirenViewModel
 
@@ -54,7 +56,7 @@ fun AlbumListScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(error ?: "", color = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("点击刷新重试", modifier = Modifier.clickable {
+                        Text(stringResource(R.string.tap_to_refresh), modifier = Modifier.clickable {
                         viewModel.clearError()
                         viewModel.loadAlbums()
                     })
@@ -63,7 +65,7 @@ fun AlbumListScreen(
         }
         displayAlbums.isEmpty() -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("暂无内容")
+                    Text(stringResource(R.string.no_content))
             }
         }
         else -> {

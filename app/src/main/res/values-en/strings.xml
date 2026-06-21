@@ -47,6 +47,32 @@
 
     <!-- Download -->
     <string name="downloading">Downloading</string>
+    <string name="downloading_progress">Downloading...</string>
+    <string name="download_complete">Completed</string>
+    <string name="download_failed">Failed</string>
+    <string name="no_download_tasks">No download tasks</string>
+    <string name="no_download_history">No download history</string>
+    <string name="active_downloads">Active (%d)</string>
+    <string name="completed_downloads">Completed (%d)</string>
+    <string name="download">Download</string>
+    <string name="downloaded">Downloaded</string>
+
+    <!-- Play Mode -->
+    <string name="mode_single_loop">Single Loop</string>
+    <string name="mode_single_stop">Single Stop</string>
+    <string name="mode_list_loop">List Loop</string>
+    <string name="mode_list_stop">List Stop</string>
+    <string name="mode_list_shuffle">List Shuffle</string>
+    <string name="select_play_mode">Select play mode</string>
+
+    <!-- Playlist -->
+    <string name="playlist">Playlist</string>
+    <string name="no_playlist">No tracks in queue</string>
+    <string name="play_mode">Play Mode</string>
+    <string name="track_index">%d/%d</string>
+
+    <!-- Download -->
+    <string name="downloading">Downloading</string>
     <string name="download_complete">Completed</string>
     <string name="download_failed">Failed</string>
     <string name="no_download_tasks">No download tasks</string>

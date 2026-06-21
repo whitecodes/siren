@@ -257,8 +257,8 @@ fun SirenApp(
                 )
                 NavigationItem.entries.forEach { item ->
                     NavigationDrawerItem(
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title) },
+                        icon = { Icon(item.icon, contentDescription = stringResource(item.titleResId)) },
+                        label = { Text(stringResource(item.titleResId)) },
                         selected = currentNavItem == item,
                         onClick = {
                             currentNavItem = item

@@ -118,7 +118,7 @@ fun ActiveDownloadItem(task: DownloadItem) {
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "下载中...",
+                        text = stringResource(R.string.downloading_progress),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -168,7 +168,7 @@ fun CompletedDownloadItem(task: DownloadItem) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (task.isCompleted) "已完成" else "下载失败",
+                    text = if (task.isCompleted) stringResource(R.string.download_complete) else stringResource(R.string.download_failed),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )

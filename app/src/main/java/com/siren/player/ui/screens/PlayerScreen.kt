@@ -99,7 +99,7 @@ fun PlayerScreen(
             title = { Text(stringResource(R.string.now_playing)) },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -119,7 +119,7 @@ fun PlayerScreen(
             if (coverUrl != null) {
                 AsyncImage(
                     model = coverUrl,
-                    contentDescription = "专辑封面",
+                        contentDescription = stringResource(R.string.album_cover),
                     modifier = Modifier.size(240.dp),
                     contentScale = ContentScale.Crop
                 )
@@ -145,7 +145,7 @@ fun PlayerScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = title.ifEmpty { "未在播放" },
+                text = title.ifEmpty { stringResource(R.string.not_playing) },
                 style = MaterialTheme.typography.headlineSmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -212,7 +212,7 @@ fun PlayerScreen(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = "上一首")
+                    Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
                 }
 
                 FilledIconButton(
@@ -225,7 +225,7 @@ fun PlayerScreen(
                 ) {
                     Icon(
                         if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        contentDescription = if (isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -238,7 +238,7 @@ fun PlayerScreen(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
-                    Icon(Icons.Default.SkipNext, contentDescription = "下一首")
+                    Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
                 }
 
                 Text(
