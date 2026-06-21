@@ -111,14 +111,22 @@ class MainActivity : ComponentActivity() {
 
     override fun attachBaseContext(newBase: android.content.Context) {
         val locale = LanguageManager.getLocale()
-        val config = if (locale != null) {
-            android.content.res.Configuration(newBase.resources.configuration).apply {
-                setLocale(locale)
-            }
+        if (locale != null) {
+            val config = android.content.res.Configuration(newBase.resources.configuration)
+            config.setLocale(locale)
+            val context = newBase.createConfigurationContext(config)
+            super.attachBaseContext(context)
         } else {
-            newBase.resources.configuration
+            super.attachBaseContext(newBase)
         }
-        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
+    override fun applyOverrideConfiguration(overrideConfiguration: android.content.res.Configuration?) {
+        val locale = LanguageManager.getLocale()
+        if (locale != null && overrideConfiguration != null) {
+            overrideConfiguration.setLocale(locale)
+        }
+        super.applyOverrideConfiguration(overrideConfiguration)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
