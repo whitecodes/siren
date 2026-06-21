@@ -150,24 +150,20 @@ class MainActivity : ComponentActivity() {
     private fun playSong(songCid: String, songName: String, albumCid: String) {
         val service = musicService ?: return
         val db = (application as SirenApp).database
+        val repository = com.siren.player.data.repository.MusicRepository(application)
         Thread {
-            val songs = SirenApi.getAlbumSongs(albumCid)
+            // Use same order as album detail page (reverse API order)
+            val songs = kotlinx.coroutines.runBlocking { repository.getAlbumSongs(albumCid) }
             val startIndex = songs.indexOfFirst { it.cid == songCid }.coerceAtLeast(0)
-            var newIndex = 0
-            var foundIndex = 0
             val urls = songs.mapNotNull { song ->
                 val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
                 val cachedPath = runBlocking { db.songDao().getLocalPath(song.cid) }
                 val url = cachedPath ?: detail.sourceUrl
-                if (song.cid == songCid) {
-                    foundIndex = newIndex
-                }
-                newIndex++
                 url to detail.name
             }
             if (urls.isNotEmpty()) {
                 runOnUiThread {
-                    service.play(urls, foundIndex)
+                    service.play(urls, startIndex)
                 }
             }
         }.start()
@@ -176,8 +172,10 @@ class MainActivity : ComponentActivity() {
     private fun playAlbum(albumCid: String) {
         val service = musicService ?: return
         val db = (application as SirenApp).database
+        val repository = com.siren.player.data.repository.MusicRepository(application)
         Thread {
-            val songs = SirenApi.getAlbumSongs(albumCid)
+            // Use same order as album detail page (reverse API order)
+            val songs = kotlinx.coroutines.runBlocking { repository.getAlbumSongs(albumCid) }
             val urls = songs.mapNotNull { song ->
                 val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
                 val cachedPath = runBlocking { db.songDao().getLocalPath(song.cid) }

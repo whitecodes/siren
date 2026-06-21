@@ -173,6 +173,7 @@ class MusicService : Service() {
     fun togglePlayPause() {
         val player = exoPlayer ?: return
         if (player.isPlaying) player.pause() else player.play()
+        onPlaybackStateChange?.invoke()
     }
 
     fun seekTo(positionMs: Long) {
