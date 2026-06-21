@@ -50,6 +50,9 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchResults = MutableStateFlow<List<AlbumInfo>>(emptyList())
     val searchResults: StateFlow<List<AlbumInfo>> = _searchResults
 
+    private val _downloadPath = MutableStateFlow(downloadManager.downloadPath)
+    val downloadPath: StateFlow<String> = _downloadPath
+
     init {
         loadAlbums(forceRefresh = false)
     }
@@ -142,5 +145,10 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearError() {
         _error.value = null
+    }
+
+    fun setDownloadPath(path: String) {
+        downloadManager.setDownloadPath(path)
+        _downloadPath.value = downloadManager.downloadPath
     }
 }

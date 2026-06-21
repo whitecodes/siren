@@ -1,6 +1,8 @@
 package com.siren.player.data.download
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.os.Environment
 import android.util.Log
 import com.siren.player.data.api.SirenApi
 import com.siren.player.data.api.SongDetail
@@ -95,16 +97,39 @@ class DownloadManager(
     private val albumDao = database.albumDao()
     private val scope = CoroutineScope(Dispatchers.IO)
     private val activeJobs = ConcurrentHashMap<Long, Job>()
+    private val prefs: SharedPreferences = context.getSharedPreferences("download_prefs", Context.MODE_PRIVATE)
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    private val downloadDir = File(context.cacheDir, "downloads").also { it.mkdirs() }
+    companion object {
+        private const val KEY_DOWNLOAD_PATH = "download_path"
+        private const val DEFAULT_DOWNLOAD_PATH = "downloads"
+    }
 
-    fun getDownloadPath(songCid: String, fileName: String): String {
-        return File(downloadDir, "${songCid}_$fileName").absolutePath
+    val downloadPath: String
+        get() = prefs.getString(KEY_DOWNLOAD_PATH, null) ?: getDefaultDownloadPath()
+
+    fun setDownloadPath(path: String) {
+        prefs.edit().putString(KEY_DOWNLOAD_PATH, path).apply()
+    }
+
+    private fun getDefaultDownloadPath(): String {
+        return File(context.cacheDir, DEFAULT_DOWNLOAD_PATH).absolutePath
+    }
+
+    fun getDownloadDir(): File {
+        val dir = File(downloadPath)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        return dir
+    }
+
+    fun getDownloadFilePath(songCid: String, fileName: String): String {
+        return File(getDownloadDir(), "${songCid}_$fileName").absolutePath
     }
 
     suspend fun enqueue(song: SongDetail): Long {
@@ -135,7 +160,7 @@ class DownloadManager(
 
                 val ext = if (url.endsWith(".wav")) ".wav" else ".mp3"
                 val fileName = "${song.name}$ext"
-                val filePath = getDownloadPath(song.cid, fileName)
+                val filePath = getDownloadFilePath(song.cid, fileName)
                 val file = File(filePath)
 
                 val request = Request.Builder().url(url).build()
