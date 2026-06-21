@@ -128,8 +128,12 @@ class DownloadManager(
         return dir
     }
 
-    fun getDownloadFilePath(songCid: String, fileName: String): String {
-        return File(getDownloadDir(), "${songCid}_$fileName").absolutePath
+    fun getDownloadFilePath(albumName: String, fileName: String): String {
+        val albumDir = File(getDownloadDir(), albumName)
+        if (!albumDir.exists()) {
+            albumDir.mkdirs()
+        }
+        return File(albumDir, fileName).absolutePath
     }
 
     suspend fun enqueue(song: SongDetail): Long {
@@ -160,7 +164,7 @@ class DownloadManager(
 
                 val ext = if (url.endsWith(".wav")) ".wav" else ".mp3"
                 val fileName = "${song.name}$ext"
-                val filePath = getDownloadFilePath(song.cid, fileName)
+                val filePath = getDownloadFilePath(albumName, fileName)
                 val file = File(filePath)
 
                 val request = Request.Builder().url(url).build()
