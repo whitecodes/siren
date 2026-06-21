@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -286,23 +287,23 @@ fun SirenApp(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.width(260.dp)
             ) {
                 // Brand Header with cropped logo
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.BottomStart
                 ) {
                     // Use local drawable for the Monster Siren logo
                     coil.compose.AsyncImage(
                         model = R.drawable.siren_logo,
                         contentDescription = "Monster Siren Logo",
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        contentScale = androidx.compose.ui.layout.ContentScale.FillWidth
+                            .height(100.dp)
+                            .aspectRatio(400f/243f),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit
                     )
                 }
                 
