@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -51,13 +50,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.siren.player.R
 import com.siren.player.ui.SirenViewModel
+import com.siren.player.ui.theme.LanguageManager
+import com.siren.player.ui.theme.LanguageMode
+import com.siren.player.ui.theme.ThemeManager
+import com.siren.player.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
-import java.io.File
 
 fun uriToPath(uri: Uri): String {
     val docId = DocumentsContract.getTreeDocumentId(uri)
@@ -79,6 +83,8 @@ fun SettingsScreen(viewModel: SirenViewModel) {
     val scope = rememberCoroutineScope()
     var showClearCacheDialog by remember { mutableStateOf(false) }
     val downloadPath by viewModel.downloadPath.collectAsState()
+    val themeMode by ThemeManager.themeMode.collectAsState()
+    val languageMode by LanguageManager.languageMode.collectAsState()
 
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -95,15 +101,91 @@ fun SettingsScreen(viewModel: SirenViewModel) {
             .padding(16.dp)
     ) {
         Text(
-            text = "设置",
+            text = stringResource(R.string.settings),
             style = MaterialTheme.typography.headlineMedium
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Language Section
+        Text(
+            text = stringResource(R.string.language),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            LanguageMode.entries.forEach { mode ->
+                val isSelected = languageMode == mode
+                val label = when (mode) {
+                    LanguageMode.CHINESE -> stringResource(R.string.lang_chinese)
+                    LanguageMode.ENGLISH -> stringResource(R.string.lang_english)
+                    LanguageMode.SYSTEM -> stringResource(R.string.lang_system)
+                }
+                Button(
+                    onClick = { LanguageManager.setLanguageMode(mode) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
+                    Text(label)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Theme Section
+        Text(
+            text = stringResource(R.string.theme),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ThemeMode.entries.forEach { mode ->
+                val isSelected = themeMode == mode
+                val label = when (mode) {
+                    ThemeMode.LIGHT -> stringResource(R.string.theme_light)
+                    ThemeMode.DARK -> stringResource(R.string.theme_dark)
+                    ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
+                }
+                Button(
+                    onClick = { ThemeManager.setThemeMode(mode) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
+                    Text(label)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Cache Section
         Text(
-            text = "缓存管理",
+            text = stringResource(R.string.cache_management),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -119,14 +201,14 @@ fun SettingsScreen(viewModel: SirenViewModel) {
                 contentColor = MaterialTheme.colorScheme.onErrorContainer
             )
         ) {
-            Text("清除缓存")
+            Text(stringResource(R.string.clear_cache))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Download Path Section
         Text(
-            text = "下载路径",
+            text = stringResource(R.string.download_path),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -143,7 +225,7 @@ fun SettingsScreen(viewModel: SirenViewModel) {
         )
 
         Text(
-            text = "点击修改下载路径",
+            text = stringResource(R.string.click_to_change_path),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
@@ -152,8 +234,8 @@ fun SettingsScreen(viewModel: SirenViewModel) {
     if (showClearCacheDialog) {
         AlertDialog(
             onDismissRequest = { showClearCacheDialog = false },
-            title = { Text("清除缓存") },
-            text = { Text("确定要清除所有缓存吗？这将删除所有已下载的歌曲。") },
+            title = { Text(stringResource(R.string.clear_cache)) },
+            text = { Text(stringResource(R.string.clear_cache_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -163,12 +245,12 @@ fun SettingsScreen(viewModel: SirenViewModel) {
                         showClearCacheDialog = false
                     }
                 ) {
-                    Text("确定")
+                    Text(stringResource(R.string.confirm))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearCacheDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -195,7 +277,6 @@ fun AboutScreen() {
     ) {
         Spacer(modifier = Modifier.height(48.dp))
 
-        // App icon
         Card(
             modifier = Modifier.size(100.dp),
             shape = CircleShape,
@@ -219,7 +300,7 @@ fun AboutScreen() {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "塞壬唱片",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold
         )
@@ -227,7 +308,7 @@ fun AboutScreen() {
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "A WORLD FAMILIARLY UNKNOWN",
+            text = stringResource(R.string.app_slogan),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             letterSpacing = 2.sp
@@ -236,7 +317,7 @@ fun AboutScreen() {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "v0.1.0",
+            text = stringResource(R.string.version),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium
@@ -244,24 +325,23 @@ fun AboutScreen() {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Feature icons row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             AboutFeatureItem(
                 icon = Icons.Default.Favorite,
-                label = "热爱",
+                label = stringResource(R.string.feature_love),
                 color = MaterialTheme.colorScheme.error
             )
             AboutFeatureItem(
                 icon = Icons.Default.MusicNote,
-                label = "音乐",
+                label = stringResource(R.string.feature_music),
                 color = MaterialTheme.colorScheme.primary
             )
             AboutFeatureItem(
                 icon = Icons.Default.Star,
-                label = "品质",
+                label = stringResource(R.string.feature_quality),
                 color = MaterialTheme.colorScheme.tertiary
             )
         }
@@ -269,7 +349,7 @@ fun AboutScreen() {
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "播放来自 Monster Siren Records 的音乐",
+            text = stringResource(R.string.about_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -277,7 +357,6 @@ fun AboutScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // GitHub link
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -307,12 +386,12 @@ fun AboutScreen() {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "GitHub",
+                        text = stringResource(R.string.github),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "github.com/whitecodes/siren",
+                        text = stringResource(R.string.github_url),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -323,7 +402,7 @@ fun AboutScreen() {
         Spacer(modifier = Modifier.weight(1f))
 
         Text(
-            text = "Made with Jetpack Compose",
+            text = stringResource(R.string.made_with),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
         )

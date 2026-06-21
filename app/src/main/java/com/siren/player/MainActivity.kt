@@ -82,12 +82,14 @@ import com.siren.player.ui.screens.PlaylistScreen
 import com.siren.player.ui.screens.PlayerScreen
 import com.siren.player.ui.screens.SettingsScreen
 import com.siren.player.ui.screens.AboutScreen
+import com.siren.player.ui.theme.LanguageManager
 import com.siren.player.ui.theme.SirenTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -104,6 +106,18 @@ class MainActivity : ComponentActivity() {
             musicService = null
             bound = false
         }
+    }
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        val locale = LanguageManager.getLocale()
+        val config = if (locale != null) {
+            android.content.res.Configuration(newBase.resources.configuration).apply {
+                setLocale(locale)
+            }
+        } else {
+            newBase.resources.configuration
+        }
+        super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

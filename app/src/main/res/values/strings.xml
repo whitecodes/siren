@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">塞壬唱片</string>
+    <string name="app_slogan">A WORLD FAMILIARLY UNKNOWN</string>
+    <string name="version">v0.1.0</string>
+
+    <!-- Navigation -->
+    <string name="nav_album">专辑</string>
+    <string name="nav_playlist">播放列表</string>
+    <string name="nav_download_queue">下载队列</string>
+    <string name="nav_settings">设置</string>
+    <string name="nav_about">关于</string>
+    <string name="menu">菜单</string>
+    <string name="back">返回</string>
+    <string name="refresh">刷新</string>
+    <string name="search">搜索</string>
+
+    <!-- Album -->
+    <string name="search_album">搜索专辑...</string>
+    <string name="no_content">暂无内容</string>
+    <string name="tap_to_refresh">点击刷新重试</string>
+    <string name="songs_count">%d 首歌曲</string>
+
+    <!-- Player -->
+    <string name="now_playing">正在播放</string>
+    <string name="not_playing">未在播放</string>
+    <string name="play">播放</string>
+    <string name="pause">暂停</string>
+    <string name="previous">上一首</string>
+    <string name="next">下一曲</string>
+    <string name="album_cover">专辑封面</string>
+
+    <!-- Play Mode -->
+    <string name="mode_single_loop">单曲循环</string>
+    <string name="mode_single_stop">单曲结束</string>
+    <string name="mode_list_loop">列表循环</string>
+    <string name="mode_list_stop">列表停止</string>
+    <string name="mode_list_shuffle">列表随机</string>
+    <string name="select_play_mode">选择播放模式</string>
+
+    <!-- Playlist -->
+    <string name="playlist">播放列表</string>
+    <string name="no_playlist">暂无播放内容</string>
+    <string name="play_mode">播放模式</string>
+    <string name="track_index">%d/%d</string>
+
+    <!-- Download -->
+    <string name="downloading">下载中</string>
+    <string name="download_complete">已完成</string>
+    <string name="download_failed">下载失败</string>
+    <string name="no_download_tasks">暂无下载任务</string>
+    <string name="no_download_history">暂无历史下载</string>
+    <string name="active_downloads">进行中 (%d)</string>
+    <string name="completed_downloads">已完成 (%d)</string>
+
+    <!-- Settings -->
+    <string name="settings">设置</string>
+    <string name="cache_management">缓存管理</string>
+    <string name="clear_cache">清除缓存</string>
+    <string name="clear_cache_confirm">确定要清除所有缓存吗？这将删除所有已下载的歌曲。</string>
+    <string name="confirm">确定</string>
+    <string name="cancel">取消</string>
+    <string name="download_path">下载路径</string>
+    <string name="click_to_change_path">点击修改下载路径</string>
+    <string name="theme">主题</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">暗色</string>
+    <string name="theme_system">跟随系统</string>
+    <string name="language">语言</string>
+    <string name="lang_chinese">简体中文</string>
+    <string name="lang_english">English</string>
+    <string name="lang_system">跟随系统</string>
+
+    <!-- About -->
+    <string name="about">关于</string>
+    <string name="about_description">播放来自 Monster Siren Records 的音乐</string>
+    <string name="made_with">Made with Jetpack Compose</string>
+    <string name="github">GitHub</string>
+    <string name="github_url">github.com/whitecodes/siren</string>
+    <string name="feature_love">热爱</string>
+    <string name="feature_music">音乐</string>
+    <string name="feature_quality">品质</string>
+</resources>
