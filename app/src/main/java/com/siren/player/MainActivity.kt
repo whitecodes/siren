@@ -132,9 +132,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        Intent(this, MusicService::class.java).also { intent ->
-            startService(intent)
-            bindService(intent, connection, BIND_AUTO_CREATE)
+        // Defer service start to after activity is visible (Android 16 requirement)
+        window.decorView.post {
+            Intent(this, MusicService::class.java).also { intent ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(intent)
+                } else {
+                    startService(intent)
+                }
+                bindService(intent, connection, BIND_AUTO_CREATE)
+            }
         }
 
         requestPermissions()
