@@ -114,15 +114,21 @@ class MainActivity : ComponentActivity() {
     }
 
     fun showLanguageChangeDialog(mode: LanguageMode) {
-        android.app.AlertDialog.Builder(this)
-            .setTitle("切换语言")
-            .setMessage("切换语言需要退出应用，是否立即退出？")
-            .setPositiveButton("确定") { _, _ ->
-                LanguageManager.setLanguageMode(mode)
-                finishAffinity()
-            }
-            .setNegativeButton("取消", null)
-            .show()
+        android.util.Log.d("SirenApp", "showLanguageChangeDialog called with mode: $mode")
+        try {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("切换语言")
+                .setMessage("切换语言需要退出应用，是否立即退出？")
+                .setPositiveButton("确定") { _, _ ->
+                    LanguageManager.setLanguageMode(mode)
+                    finishAffinity()
+                }
+                .setNegativeButton("取消", null)
+                .show()
+            android.util.Log.d("SirenApp", "AlertDialog.show() called")
+        } catch (e: Exception) {
+            android.util.Log.e("SirenApp", "Error showing dialog", e)
+        }
     }
 
     override fun attachBaseContext(newBase: android.content.Context) {

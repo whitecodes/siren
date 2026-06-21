@@ -129,23 +129,28 @@ fun SettingsScreen(
                     LanguageMode.ENGLISH -> stringResource(R.string.lang_english)
                     LanguageMode.SYSTEM -> stringResource(R.string.lang_system)
                 }
-                Button(
-                    onClick = {
-                        if (!isSelected) {
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(enabled = !isSelected) {
+                            android.util.Log.d("SirenApp", "Language clicked: $mode")
                             onLanguageChange(mode)
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
+                        },
                     shape = RoundedCornerShape(0.dp),
-                    colors = ButtonDefaults.buttonColors(
+                    colors = CardDefaults.cardColors(
                         containerColor = if (isSelected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                        else MaterialTheme.colorScheme.surfaceVariant
                     )
                 ) {
-                    Text(label)
+                    Text(
+                        text = label,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
+            }
             }
         }
 
@@ -334,7 +339,7 @@ fun AboutScreen() {
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             AboutFeatureItem(
                 icon = Icons.Default.Favorite,
