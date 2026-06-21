@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +43,7 @@ import com.siren.player.data.download.DownloadEvent
 import com.siren.player.data.download.DownloadManager
 import com.siren.player.data.download.DownloadQueue
 import com.siren.player.db.DownloadStatus
+import com.siren.player.player.MusicService
 import com.siren.player.ui.SirenViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,6 +53,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun AlbumDetailScreen(
     viewModel: SirenViewModel,
+    musicService: MusicService?,
     onPlaySong: (songCid: String, songName: String, albumCid: String) -> Unit,
     downloadManager: DownloadManager? = null
 ) {
@@ -155,6 +158,16 @@ fun AlbumDetailScreen(
                         downloadStatus = status,
                         downloadProgress = progress,
                         onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
+                        onAddToPlaylist = {
+                            scope.launch {
+                                val detail = viewModel.getSongDetail(song.cid)
+                                if (detail != null) {
+                                    withContext(Dispatchers.Main) {
+                                        musicService?.addToPlaylist(detail.sourceUrl, detail.name)
+                                    }
+                                }
+                            }
+                        },
                         onDownload = {
                             scope.launch {
                                 val detail = viewModel.getSongDetail(song.cid)
@@ -177,6 +190,7 @@ fun SongItem(
     downloadStatus: DownloadStatus,
     downloadProgress: Float?,
     onPlay: () -> Unit,
+    onAddToPlaylist: () -> Unit,
     onDownload: () -> Unit
 ) {
     Row(
@@ -199,6 +213,17 @@ fun SongItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        IconButton(
+            onClick = onAddToPlaylist,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = stringResource(R.string.add_to_playlist),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
         when (downloadStatus) {
             DownloadStatus.DOWNLOADED -> {
                 Icon(

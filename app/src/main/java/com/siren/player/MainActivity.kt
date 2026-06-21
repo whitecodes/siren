@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -206,19 +207,24 @@ class MainActivity : ComponentActivity() {
     private fun playSong(songCid: String, songName: String, albumCid: String) {
         val service = musicService ?: return
         val db = (application as SirenApp).database
-        val repository = com.siren.player.data.repository.MusicRepository(application)
         Thread {
-            val songs = kotlinx.coroutines.runBlocking { repository.getAlbumSongs(albumCid) }
-            val startIndex = songs.indexOfFirst { it.cid == songCid }.coerceAtLeast(0)
-            val urls = songs.mapNotNull { song ->
-                val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
-                val cachedPath = runBlocking { db.songDao().getLocalPath(song.cid) }
-                val url = cachedPath ?: detail.sourceUrl
-                url to detail.name
-            }
-            if (urls.isNotEmpty()) {
-                runOnUiThread {
-                    service.play(urls, startIndex)
+            val detail = SirenApi.getSongDetail(songCid) ?: return@Thread
+            val cachedPath = runBlocking { db.songDao().getLocalPath(songCid) }
+            val url = cachedPath ?: detail.sourceUrl
+            
+            runOnUiThread {
+                val added = service.addToPlaylist(url, detail.name)
+                if (!added) {
+                    // Song already in playlist, skip to it
+                    val playlist = service.getPlaylist()
+                    val index = playlist.indexOfFirst { it.first == url }
+                    if (index >= 0) {
+                        service.skipToIndex(index)
+                    }
+                } else if (service.mediaItemCount > 1) {
+                    // addToPlaylist handles play when playlist was empty
+                    // For non-empty playlists, skip to the newly added song
+                    service.skipToIndex(service.mediaItemCount - 1)
                 }
             }
         }.start()
@@ -427,6 +433,9 @@ fun SirenApp(
                                     }
                                 }
                             }
+                            IconButton(onClick = { musicService?.clearPlaylist() }) {
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.clear_playlist))
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -461,6 +470,7 @@ fun SirenApp(
                         if (selectedAlbumCid != null) {
                             AlbumDetailScreen(
                                 viewModel = viewModel,
+                                musicService = musicService,
                                 onPlaySong = onPlaySong
                             )
                         } else {

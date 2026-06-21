@@ -254,6 +254,66 @@ class MusicService : Service() {
         }
     }
 
+    fun addToPlaylist(url: String, title: String): Boolean {
+        val player = exoPlayer ?: return false
+        // Check for duplicates by URL
+        for (i in 0 until player.mediaItemCount) {
+            val item = player.getMediaItemAt(i)
+            val existingUrl = item.localConfiguration?.uri?.toString() ?: ""
+            if (existingUrl == url) {
+                return false // Already in playlist
+            }
+        }
+        val mediaItem = MediaItem.Builder()
+            .setUri(url)
+            .setMediaMetadata(
+                androidx.media3.common.MediaMetadata.Builder()
+                    .setTitle(title)
+                    .build()
+            )
+            .build()
+        
+        if (player.mediaItemCount == 0) {
+            // First item: need to set, prepare and play
+            player.setMediaItem(mediaItem)
+            applyPlayMode()
+            player.prepare()
+            player.play()
+        } else {
+            player.addMediaItem(mediaItem)
+        }
+        return true
+    }
+
+    fun clearPlaylist() {
+        val player = exoPlayer ?: return
+        val currentIndex = player.currentMediaItemIndex
+        val currentUrl = player.currentMediaItem?.localConfiguration?.uri?.toString()
+        val currentTitle = player.currentMediaItem?.mediaMetadata?.title?.toString()
+        
+        // Clear all items
+        player.clearMediaItems()
+        
+        // If there was a playing item, keep it
+        if (currentUrl != null && currentTitle != null) {
+            val mediaItem = MediaItem.Builder()
+                .setUri(currentUrl)
+                .setMediaMetadata(
+                    androidx.media3.common.MediaMetadata.Builder()
+                        .setTitle(currentTitle)
+                        .build()
+                )
+                .build()
+            player.addMediaItem(mediaItem)
+            player.seekTo(0, 0)
+            if (player.isPlaying) {
+                player.play()
+            }
+        }
+        onPlaybackStateChange?.invoke()
+        onTrackChange?.invoke()
+    }
+
     fun skipToIndex(index: Int) {
         val player = exoPlayer ?: return
         android.util.Log.d("SirenPlayer", "skipToIndex: index=$index, mediaItemCount=${player.mediaItemCount}, currentTitle=${player.currentMediaItem?.mediaMetadata?.title}")

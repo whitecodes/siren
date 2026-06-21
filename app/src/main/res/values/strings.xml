@@ -44,6 +44,8 @@
     <string name="no_playlist">暂无播放内容</string>
     <string name="play_mode">播放模式</string>
     <string name="track_index">%d/%d</string>
+    <string name="add_to_playlist">添加到播放列表</string>
+    <string name="clear_playlist">清除播放列表</string>
 
     <!-- Download -->
     <string name="downloading">下载中</string>
