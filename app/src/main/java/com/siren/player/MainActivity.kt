@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -287,51 +288,22 @@ fun SirenApp(
             ModalDrawerSheet(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Brand Header with logo
-                Column(
+                // Brand Header with cropped logo
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Brand logo image
+                    // Use local drawable for the Monster Siren logo
                     coil.compose.AsyncImage(
-                        model = "https://web.hycdn.cn/hg_web_sdk/lib/assets/copyright.34c739e28f189ed9d13a.png",
-                        contentDescription = "塞壬唱片 Logo",
+                        model = R.drawable.siren_logo,
+                        contentDescription = "Monster Siren Logo",
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(60.dp),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                            .height(50.dp),
+                        contentScale = androidx.compose.ui.layout.ContentScale.FillWidth
                     )
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Text(
-                        text = "塞壬唱片",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    Text(
-                        text = "A WORLD FAMILIARLY UNKNOWN",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Copyright info
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "上海鹰角网络科技有限公司",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
-                    }
                 }
                 
                 NavigationItem.entries.forEach { item ->
