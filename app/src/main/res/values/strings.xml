@@ -97,6 +97,8 @@
     <string name="lang_chinese">简体中文</string>
     <string name="lang_english">English</string>
     <string name="lang_system">跟随系统</string>
+    <string name="language_change_title">切换语言</string>
+    <string name="language_change_message">切换语言需要重启应用，是否立即重启？</string>
 
     <!-- About -->
     <string name="about">关于</string>

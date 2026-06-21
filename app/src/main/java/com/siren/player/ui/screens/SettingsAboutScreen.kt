@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.provider.DocumentsContract
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -82,9 +83,12 @@ fun uriToPath(uri: Uri): String {
 fun SettingsScreen(viewModel: SirenViewModel) {
     val scope = rememberCoroutineScope()
     var showClearCacheDialog by remember { mutableStateOf(false) }
+    var showLanguageChangeDialog by remember { mutableStateOf(false) }
+    var pendingLanguageMode by remember { mutableStateOf<LanguageMode?>(null) }
     val downloadPath by viewModel.downloadPath.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val languageMode by LanguageManager.languageMode.collectAsState()
+    val context = LocalContext.current
 
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -128,7 +132,12 @@ fun SettingsScreen(viewModel: SirenViewModel) {
                     LanguageMode.SYSTEM -> stringResource(R.string.lang_system)
                 }
                 Button(
-                    onClick = { LanguageManager.setLanguageMode(mode) },
+                    onClick = {
+                        if (mode != languageMode) {
+                            pendingLanguageMode = mode
+                            showLanguageChangeDialog = true
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(0.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -250,6 +259,45 @@ fun SettingsScreen(viewModel: SirenViewModel) {
             },
             dismissButton = {
                 TextButton(onClick = { showClearCacheDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (showLanguageChangeDialog && pendingLanguageMode != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showLanguageChangeDialog = false
+                pendingLanguageMode = null
+            },
+            title = { Text(stringResource(R.string.language_change_title)) },
+            text = { Text(stringResource(R.string.language_change_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        LanguageManager.setLanguageMode(pendingLanguageMode!!)
+                        showLanguageChangeDialog = false
+                        pendingLanguageMode = null
+                        // Restart activity to apply language
+                        val intent = (context as? ComponentActivity)?.intent
+                        intent?.let {
+                            it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            context.startActivity(it)
+                            (context as? ComponentActivity)?.finish()
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showLanguageChangeDialog = false
+                        pendingLanguageMode = null
+                    }
+                ) {
                     Text(stringResource(R.string.cancel))
                 }
             }
