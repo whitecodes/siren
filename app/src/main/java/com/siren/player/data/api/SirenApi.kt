@@ -46,6 +46,20 @@ object SirenApi {
         }
     }
 
+    fun getAlbumDetail(cid: String): AlbumDetail? {
+        val json = get("/album/$cid/data") ?: return null
+        val data = json.optJSONObject("data") ?: return null
+        return AlbumDetail(
+            cid = data.optString("cid"),
+            name = data.optString("name"),
+            intro = data.optString("intro"),
+            coverUrl = data.optString("coverUrl"),
+            artistes = data.optJSONArray("artistes")?.let { arr ->
+                (0 until arr.length()).map { arr.getString(it) }
+            } ?: emptyList()
+        )
+    }
+
     fun getSongs(): List<SongInfo> {
         val json = get("/songs") ?: return emptyList()
         val data = json.optJSONObject("data") ?: return emptyList()
@@ -104,6 +118,15 @@ object SirenApi {
 data class AlbumInfo(
     val cid: String,
     val name: String,
+    val coverUrl: String,
+    val artistes: List<String>,
+    val intro: String = ""
+)
+
+data class AlbumDetail(
+    val cid: String,
+    val name: String,
+    val intro: String,
     val coverUrl: String,
     val artistes: List<String>
 )

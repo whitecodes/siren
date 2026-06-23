@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MusicNote
@@ -45,11 +44,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.media3.common.Player
+import coil.compose.AsyncImage
+import com.siren.player.R
 import com.siren.player.player.MusicService
+import com.siren.player.player.PlayMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -59,14 +61,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun PlayerScreen(
     musicService: MusicService?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    coverUrl: String? = null
 ) {
     var isPlaying by remember { mutableStateOf(musicService?.isPlaying == true) }
     var currentPos by remember { mutableLongStateOf(musicService?.currentPosition ?: 0) }
     var duration by remember { mutableLongStateOf(musicService?.duration ?: 0) }
     var title by remember { mutableStateOf(musicService?.currentTitle ?: "") }
-    var repeatMode by remember { mutableStateOf(musicService?.repeatMode ?: Player.REPEAT_MODE_OFF) }
-    var shuffleEnabled by remember { mutableStateOf(musicService?.shuffleModeEnabled == true) }
+    var playMode by remember { mutableStateOf(musicService?.playMode ?: PlayMode.LIST_STOP) }
 
     DisposableEffect(musicService) {
         val service = musicService ?: return@DisposableEffect onDispose {}
@@ -75,8 +77,7 @@ fun PlayerScreen(
             currentPos = service.currentPosition
             duration = service.duration
             title = service.currentTitle
-            repeatMode = service.repeatMode
-            shuffleEnabled = service.shuffleModeEnabled
+            playMode = service.playMode
         }
         val job = CoroutineScope(Dispatchers.Main).launch {
             while (true) {
@@ -95,10 +96,10 @@ fun PlayerScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text("正在播放") },
+            title = { Text(stringResource(R.string.now_playing)) },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -114,28 +115,37 @@ fun PlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Card(
-                modifier = Modifier.size(240.dp),
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            // Album cover - no rounded corners
+            if (coverUrl != null) {
+                AsyncImage(
+                    model = coverUrl,
+                        contentDescription = stringResource(R.string.album_cover),
+                    modifier = Modifier.size(240.dp),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Card(
+                    modifier = Modifier.size(240.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
-                    Icon(
-                        Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.MusicNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = title.ifEmpty { "未在播放" },
+                text = title.ifEmpty { stringResource(R.string.not_playing) },
                 style = MaterialTheme.typography.headlineSmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -181,14 +191,15 @@ fun PlayerScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {
-                    musicService?.setShuffleMode(!shuffleEnabled)
-                    shuffleEnabled = !shuffleEnabled
-                }) {
+                IconButton(onClick = { musicService?.cyclePlayMode() }) {
                     Icon(
-                        Icons.Default.Shuffle,
-                        contentDescription = "随机",
-                        tint = if (shuffleEnabled) MaterialTheme.colorScheme.primary
+                        when (playMode) {
+                            PlayMode.SINGLE_LOOP -> Icons.Default.RepeatOne
+                            PlayMode.LIST_SHUFFLE -> Icons.Default.Shuffle
+                            else -> Icons.Default.Repeat
+                        },
+                        contentDescription = stringResource(playMode.displayNameResId),
+                        tint = if (playMode != PlayMode.LIST_STOP) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }
@@ -201,7 +212,7 @@ fun PlayerScreen(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = "上一首")
+                    Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
                 }
 
                 FilledIconButton(
@@ -214,7 +225,7 @@ fun PlayerScreen(
                 ) {
                     Icon(
                         if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        contentDescription = if (isPlaying) stringResource(R.string.pause) else stringResource(R.string.play),
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -227,26 +238,14 @@ fun PlayerScreen(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
-                    Icon(Icons.Default.SkipNext, contentDescription = "下一首")
+                    Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
                 }
 
-                IconButton(onClick = {
-                    val next = when (repeatMode) {
-                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                        else -> Player.REPEAT_MODE_OFF
-                    }
-                    musicService?.setRepeatMode(next)
-                    repeatMode = next
-                }) {
-                    Icon(
-                        if (repeatMode == Player.REPEAT_MODE_ONE) Icons.Default.RepeatOne
-                        else Icons.Default.Repeat,
-                        contentDescription = "循环",
-                        tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
+                Text(
+                    text = stringResource(playMode.displayNameResId),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
             }
         }
     }

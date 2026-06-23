@@ -13,39 +13,38 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.siren.player.R
 import com.siren.player.data.api.SongInfo
+import com.siren.player.data.download.DownloadEvent
+import com.siren.player.data.download.DownloadManager
+import com.siren.player.data.download.DownloadQueue
+import com.siren.player.db.DownloadStatus
+import com.siren.player.player.MusicService
 import com.siren.player.ui.SirenViewModel
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,89 +53,130 @@ import kotlinx.coroutines.withContext
 @Composable
 fun AlbumDetailScreen(
     viewModel: SirenViewModel,
-    onBack: () -> Unit,
-    onPlaySong: (songCid: String, songName: String, albumCid: String) -> Unit
+    musicService: MusicService?,
+    onPlaySong: (songCid: String, songName: String, albumCid: String) -> Unit,
+    downloadManager: DownloadManager? = null
 ) {
     val album by viewModel.currentAlbum.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val downloading = remember { mutableStateMapOf<String, Float>() }
+    val downloadStatus = remember { mutableStateMapOf<String, DownloadStatus>() }
+    val downloadProgress = remember { mutableStateMapOf<String, Float>() }
+    val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text(album?.name ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        )
-
-        when {
-            isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+    // Initialize download status from database
+    DisposableEffect(album) {
+        val db = viewModel.database
+        val job = scope.launch {
+            album?.songs?.forEach { song ->
+                val songEntity = withContext(Dispatchers.IO) { db.songDao().get(song.cid) }
+                if (songEntity != null) {
+                    downloadStatus[song.cid] = songEntity.status
                 }
             }
-            album != null -> {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            AsyncImage(
-                                model = album!!.coverUrl,
-                                contentDescription = album!!.name,
-                                modifier = Modifier
-                                    .size(200.dp)
-                                    .clip(RoundedCornerShape(16.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = album!!.name,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
-                            Text(
-                                text = album!!.artistes.joinToString(", "),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
+        }
+        onDispose { job.cancel() }
+    }
+
+    // Observe download events
+    DisposableEffect(Unit) {
+        val job = scope.launch {
+            DownloadQueue.events.collect { event ->
+                when (event) {
+                    is DownloadEvent.Progress -> {
+                        downloadStatus[event.songCid] = DownloadStatus.DOWNLOADING
+                        downloadProgress[event.songCid] = event.progress
+                    }
+                    is DownloadEvent.Completed -> {
+                        downloadStatus[event.songCid] = DownloadStatus.DOWNLOADED
+                        downloadProgress.remove(event.songCid)
+                    }
+                    is DownloadEvent.Failed -> {
+                        downloadStatus[event.songCid] = DownloadStatus.DOWNLOAD_FAILED
+                        downloadProgress.remove(event.songCid)
+                    }
+                }
+            }
+        }
+        onDispose { job.cancel() }
+    }
+
+    when {
+        isLoading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        album != null -> {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        AsyncImage(
+                            model = album!!.coverUrl,
+                            contentDescription = album!!.name,
+                            modifier = Modifier.size(180.dp),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = album!!.name,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Text(
+                            text = album!!.artistes.joinToString(", "),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                        if (album!!.intro.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "${album!!.songs.size} 首歌曲",
+                                text = album!!.intro,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
-                    }
-
-                    itemsIndexed(album!!.songs) { index, song ->
-                        SongItem(
-                            song = song,
-                            index = index,
-                            downloadProgress = downloading[song.cid],
-                            onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
-                            onDownload = {
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    downloading[song.cid] = 0f
-                                    val detail = viewModel.getSongDetail(song.cid)
-                                    if (detail != null) {
-                                        viewModel.downloadAndCache(detail) { progress ->
-                                            downloading[song.cid] = progress
-                                        }
-                                    }
-                                    downloading.remove(song.cid)
-                                }
-                            }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.songs_count, album!!.songs.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
                     }
+                }
+
+                itemsIndexed(album!!.songs) { index, song ->
+                    val status = downloadStatus[song.cid] ?: DownloadStatus.NOT_DOWNLOADED
+                    val progress = downloadProgress[song.cid]
+                    SongItem(
+                        song = song,
+                        index = index,
+                        downloadStatus = status,
+                        downloadProgress = progress,
+                        onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
+                        onAddToPlaylist = {
+                            scope.launch {
+                                val detail = viewModel.getSongDetail(song.cid)
+                                if (detail != null) {
+                                    withContext(Dispatchers.Main) {
+                                        musicService?.addToPlaylist(detail.sourceUrl, detail.name)
+                                    }
+                                }
+                            }
+                        },
+                        onDownload = {
+                            scope.launch {
+                                val detail = viewModel.getSongDetail(song.cid)
+                                if (detail != null && downloadManager != null) {
+                                    downloadManager.enqueue(detail)
+                                }
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -147,62 +187,69 @@ fun AlbumDetailScreen(
 fun SongItem(
     song: SongInfo,
     index: Int,
+    downloadStatus: DownloadStatus,
     downloadProgress: Float?,
     onPlay: () -> Unit,
+    onAddToPlaylist: () -> Unit,
     onDownload: () -> Unit
 ) {
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onPlay),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            .clickable(onClick = onPlay)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Text(
+            text = "${index + 1}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            modifier = Modifier.width(28.dp)
+        )
+        Text(
+            text = song.name,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(
+            onClick = onAddToPlaylist,
+            modifier = Modifier.size(32.dp)
         ) {
-            Text(
-                text = "${index + 1}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.width(32.dp)
+            Icon(
+                Icons.Default.Add,
+                contentDescription = stringResource(R.string.add_to_playlist),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                modifier = Modifier.size(18.dp)
             )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = song.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+        }
+        when (downloadStatus) {
+            DownloadStatus.DOWNLOADED -> {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = stringResource(R.string.downloaded),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
-                Text(
-                    text = song.artists.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-                if (downloadProgress != null) {
-                    LinearProgressIndicator(
-                        progress = { downloadProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                    )
-                }
             }
-            IconButton(onClick = onDownload) {
-                if (downloadProgress != null) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
+            DownloadStatus.DOWNLOADING -> {
+                CircularProgressIndicator(
+                    progress = { downloadProgress ?: 0f },
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp
+                )
+            }
+            else -> {
+                IconButton(
+                    onClick = onDownload,
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         Icons.Default.Download,
-                        contentDescription = "缓存",
-                        tint = MaterialTheme.colorScheme.primary
+                        contentDescription = stringResource(R.string.download),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }

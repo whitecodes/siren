@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.siren.player.db.SirenDatabase
+import com.siren.player.ui.theme.LanguageManager
+import com.siren.player.ui.theme.ThemeManager
 
 class SirenApp : Application() {
 
@@ -13,6 +15,8 @@ class SirenApp : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        ThemeManager.init(this)
+        LanguageManager.init(this)
     }
 
     private fun createNotificationChannel() {
