@@ -1,6 +1,7 @@
 package com.siren.player.ui
 
 import android.app.Application
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -52,6 +53,9 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _downloadPath = MutableStateFlow(downloadManager.downloadPath)
     val downloadPath: StateFlow<String> = _downloadPath
+
+    private val _downloadUri = MutableStateFlow(downloadManager.downloadUri)
+    val downloadUri: StateFlow<Uri?> = _downloadUri
 
     init {
         loadAlbums(forceRefresh = false)
@@ -144,12 +148,22 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
         repository.clearCache(clearDownloads = shouldClearDownloads)
     }
 
+    suspend fun rebuildDatabase(): Int {
+        return downloadManager.rebuildDatabase()
+    }
+
     fun clearError() {
         _error.value = null
     }
 
     fun setDownloadPath(path: String) {
         downloadManager.setDownloadPath(path)
+        _downloadPath.value = downloadManager.downloadPath
+    }
+
+    fun setDownloadUri(uri: Uri) {
+        downloadManager.setDownloadUri(uri)
+        _downloadUri.value = uri
         _downloadPath.value = downloadManager.downloadPath
     }
 }

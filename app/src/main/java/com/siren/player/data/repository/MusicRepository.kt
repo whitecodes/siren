@@ -184,7 +184,7 @@ class MusicRepository(private val context: Context) {
         val prefsNames = listOf("download_prefs", "theme_prefs", "language_prefs")
         prefsNames.forEach { name ->
             context.getSharedPreferences(name, Context.MODE_PRIVATE)
-                .edit().clear().apply()
+                .edit().clear().commit()  // 使用 commit() 确保同步执行
         }
     }
 

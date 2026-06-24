@@ -89,8 +89,10 @@ fun SettingsScreen(
 ) {
     val scope = rememberCoroutineScope()
     var showClearCacheDialog by remember { mutableStateOf(false) }
+    var showRebuildDatabaseDialog by remember { mutableStateOf(false) }
     var showLanguageDropdown by remember { mutableStateOf(false) }
     var showThemeDropdown by remember { mutableStateOf(false) }
+    var rebuildResult by remember { mutableStateOf<String?>(null) }
     val downloadPath by viewModel.downloadPath.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val languageMode by LanguageManager.languageMode.collectAsState()
@@ -101,8 +103,7 @@ fun SettingsScreen(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
         uri?.let {
-            val path = uriToPath(it)
-            viewModel.setDownloadPath(path)
+            viewModel.setDownloadUri(it)
         }
     }
 
@@ -271,6 +272,29 @@ fun SettingsScreen(
             Text(stringResource(R.string.clear_cache))
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { showRebuildDatabaseDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(0.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        ) {
+            Text(stringResource(R.string.rebuild_database))
+        }
+
+        if (rebuildResult != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = rebuildResult!!,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         // Download Path Section
@@ -341,6 +365,38 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearCacheDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Rebuild database dialog
+    if (showRebuildDatabaseDialog) {
+        AlertDialog(
+            onDismissRequest = { showRebuildDatabaseDialog = false },
+            title = { Text(stringResource(R.string.rebuild_database)) },
+            text = { Text(stringResource(R.string.rebuild_database_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                val updatedCount = viewModel.rebuildDatabase()
+                                rebuildResult = context.getString(R.string.rebuild_database_success, updatedCount)
+                            } catch (e: Exception) {
+                                android.util.Log.e("SettingsScreen", "Error in rebuildDatabase: ${e.message}", e)
+                                rebuildResult = "Error: ${e.message}"
+                            }
+                        }
+                        showRebuildDatabaseDialog = false
+                    }
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRebuildDatabaseDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }

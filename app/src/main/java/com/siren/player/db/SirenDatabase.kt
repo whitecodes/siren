@@ -113,6 +113,12 @@ interface SongDao {
 
     @Query("SELECT COUNT(*) FROM songs WHERE albumCid = :albumCid")
     suspend fun countAlbumSongs(albumCid: String): Int
+
+    @Query("SELECT * FROM songs")
+    suspend fun getAll(): List<Song>
+
+    @Query("SELECT * FROM songs WHERE status = 'DOWNLOADED'")
+    suspend fun getDownloadedSongs(): List<Song>
 }
 
 // ---- DownloadTask Entity ----
