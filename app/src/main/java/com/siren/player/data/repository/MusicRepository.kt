@@ -157,7 +157,7 @@ class MusicRepository(private val context: Context) {
         }
     }
 
-    suspend fun clearCache(clearDownloads: Boolean = true) {
+    suspend fun clearCache(clearDownloads: Boolean = true) = withContext(Dispatchers.IO) {
         // 1. 清理音乐缓存（专辑封面、流式播放缓存）
         cacheDir.listFiles()?.forEach { it.delete() }
 
