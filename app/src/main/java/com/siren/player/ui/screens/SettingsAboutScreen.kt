@@ -90,6 +90,7 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showLanguageDropdown by remember { mutableStateOf(false) }
+    var showThemeDropdown by remember { mutableStateOf(false) }
     val downloadPath by viewModel.downloadPath.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val languageMode by LanguageManager.languageMode.collectAsState()
@@ -108,6 +109,12 @@ fun SettingsScreen(
         LanguageMode.CHINESE -> stringResource(R.string.lang_chinese)
         LanguageMode.ENGLISH -> stringResource(R.string.lang_english)
         LanguageMode.SYSTEM -> stringResource(R.string.lang_system)
+    }
+
+    val currentThemeLabel = when (themeMode) {
+        ThemeMode.LIGHT -> stringResource(R.string.theme_light)
+        ThemeMode.DARK -> stringResource(R.string.theme_dark)
+        ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
     }
 
     Column(
@@ -182,38 +189,60 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Theme Section
-        Text(
-            text = stringResource(R.string.theme),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // Theme Setting - single row
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            ThemeMode.entries.forEach { mode ->
-                val isSelected = themeMode == mode
-                val label = when (mode) {
-                    ThemeMode.LIGHT -> stringResource(R.string.theme_light)
-                    ThemeMode.DARK -> stringResource(R.string.theme_dark)
-                    ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
-                }
-                Button(
-                    onClick = { ThemeManager.setThemeMode(mode) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            Text(
+                text = stringResource(R.string.theme),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+
+            Box {
+                Row(
+                    modifier = Modifier.clickable { showThemeDropdown = true },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(label)
+                    Text(
+                        text = currentThemeLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showThemeDropdown,
+                    onDismissRequest = { showThemeDropdown = false }
+                ) {
+                    ThemeMode.entries.forEach { mode ->
+                        val label = when (mode) {
+                            ThemeMode.LIGHT -> stringResource(R.string.theme_light)
+                            ThemeMode.DARK -> stringResource(R.string.theme_dark)
+                            ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
+                        }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = label,
+                                    color = if (themeMode == mode) MaterialTheme.colorScheme.primary
+                                           else MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = {
+                                showThemeDropdown = false
+                                if (mode != themeMode) {
+                                    ThemeManager.setThemeMode(mode)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
