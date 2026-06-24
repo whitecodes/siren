@@ -44,7 +44,14 @@ class MusicService : Service() {
 
         // 必须在 startForegroundService() 后5秒内调用 startForeground()，否则 ANR
         // 先用简单的 notification 立即调用 startForeground()
-        startForeground(NOTIFICATION_ID, fallbackNotification())
+        try {
+            startForeground(NOTIFICATION_ID, fallbackNotification())
+        } catch (e: Exception) {
+            // 后台启动时不允许创建前台服务，忽略异常
+            android.util.Log.e("MusicService", "Failed to start foreground: ${e.message}")
+            stopSelf()
+            return
+        }
 
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             addListener(object : Player.Listener {
