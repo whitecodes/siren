@@ -169,10 +169,15 @@ class MainActivity : ComponentActivity() {
     fun showLanguageChangeDialog(mode: LanguageMode) {
         android.app.AlertDialog.Builder(this)
             .setTitle("切换语言")
-            .setMessage("切换语言需要退出应用，是否立即退出？")
+            .setMessage("切换语言需要重启应用，是否立即重启？")
             .setPositiveButton("确定") { _, _ ->
                 LanguageManager.setLanguageMode(mode)
-                finishAffinity()
+                // 重启应用
+                val packageManager = packageManager
+                val intent = packageManager.getLaunchIntentForPackage(packageName)
+                intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+                Runtime.getRuntime().exit(0)
             }
             .setNegativeButton("取消", null)
             .show()

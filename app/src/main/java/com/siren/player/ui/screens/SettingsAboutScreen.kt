@@ -322,53 +322,35 @@ fun SettingsScreen(
         )
     }
 
-    // Clear cache dialog
+    // Clear cache dialog - use Android native AlertDialog for consistency
     if (showClearCacheDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearCacheDialog = false },
-            title = { Text(stringResource(R.string.clear_cache)) },
-            text = {
-                Text(
-                    stringResource(
-                        if (isInternalStorage) R.string.clear_cache_confirm_internal
-                        else R.string.clear_cache_confirm_external
-                    )
+        // Dismiss the Compose dialog first, then show native dialog
+        showClearCacheDialog = false
+        android.app.AlertDialog.Builder(context)
+            .setTitle(stringResource(R.string.clear_cache))
+            .setMessage(
+                stringResource(
+                    if (isInternalStorage) R.string.clear_cache_confirm_internal
+                    else R.string.clear_cache_confirm_external
                 )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        android.util.Log.d("SettingsScreen", "Clear cache clicked, isInternalStorage=$isInternalStorage")
-                        scope.launch {
-                            try {
-                                android.util.Log.d("SettingsScreen", "Starting clearCache...")
-                                viewModel.clearCache()
-                                android.util.Log.d("SettingsScreen", "clearCache completed")
-                                // 清理完成后重启应用
-                                android.util.Log.d("SettingsScreen", "Restarting app...")
-                                val packageManager = context.packageManager
-                                val intent = packageManager.getLaunchIntentForPackage(context.packageName)
-                                android.util.Log.d("SettingsScreen", "Launch intent: $intent")
-                                intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                context.startActivity(intent)
-                                android.util.Log.d("SettingsScreen", "startActivity called, calling exit(0)")
-                                Runtime.getRuntime().exit(0)
-                            } catch (e: Exception) {
-                                android.util.Log.e("SettingsScreen", "Error in clearCache: ${e.message}", e)
-                            }
-                        }
-                        showClearCacheDialog = false
+            )
+            .setPositiveButton(stringResource(R.string.confirm)) { _, _ ->
+                scope.launch {
+                    try {
+                        viewModel.clearCache()
+                        // 清理完成后重启应用
+                        val packageManager = context.packageManager
+                        val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+                        intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                        Runtime.getRuntime().exit(0)
+                    } catch (e: Exception) {
+                        android.util.Log.e("SettingsScreen", "Error in clearCache: ${e.message}", e)
                     }
-                ) {
-                    Text(stringResource(R.string.confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearCacheDialog = false }) {
-                    Text(stringResource(R.string.cancel))
                 }
             }
-        )
+            .setNegativeButton(stringResource(R.string.cancel), null)
+            .show()
     }
 
     // Rebuild database dialog
