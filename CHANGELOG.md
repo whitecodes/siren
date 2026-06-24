@@ -13,6 +13,11 @@ All notable changes to this project will be documented in this file.
 - Updated TopAppBar colors to use surfaceContainer theme
 - Improved icon tint consistency across the app
 
+### Fixed
+- ANR in settings screen caused by MusicService not calling startForeground() within 5 seconds
+  - Moved startForeground() call to the beginning of onCreate() with fallback notification
+  - Full media notification is now updated after ExoPlayer and MediaSession initialization
+
 ## [1.0.0] - 2026-06-24
 
 ### Added

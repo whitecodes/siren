@@ -42,6 +42,10 @@ class MusicService : Service() {
         super.onCreate()
         createNotificationChannel()
 
+        // 必须在 startForegroundService() 后5秒内调用 startForeground()，否则 ANR
+        // 先用简单的 notification 立即调用 startForeground()
+        startForeground(NOTIFICATION_ID, fallbackNotification())
+
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
@@ -74,8 +78,8 @@ class MusicService : Service() {
             .setSessionActivity(sessionActivity)
             .build()
 
-        // Start foreground with the media notification
-        startForeground(NOTIFICATION_ID, buildNotification())
+        // 初始化完成后，更新为完整的 media notification
+        updateNotification()
     }
 
     private fun createNotificationChannel() {
