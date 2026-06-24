@@ -167,7 +167,14 @@ fun AlbumDetailScreen(
                                 }
                             }
                         },
-                        onDownload = { }
+                        onDownload = {
+                            scope.launch {
+                                val detail = viewModel.getSongDetail(song.cid)
+                                if (detail != null) {
+                                    viewModel.downloadManager.enqueue(detail)
+                                }
+                            }
+                        }
                     )
                 }
             }
