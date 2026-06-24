@@ -1,5 +1,6 @@
 package com.siren.player.ui.navigation
 
+import com.siren.player.R
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -36,27 +37,27 @@ class NavigationTest {
     }
 
     @Test
-    fun albumTitle() {
-        assertEquals("专辑", NavigationItem.Album.title)
+    fun albumTitleResId() {
+        assertEquals(R.string.nav_album, NavigationItem.Album.titleResId)
     }
 
     @Test
-    fun playlistTitle() {
-        assertEquals("播放列表", NavigationItem.Playlist.title)
+    fun playlistTitleResId() {
+        assertEquals(R.string.nav_playlist, NavigationItem.Playlist.titleResId)
     }
 
     @Test
-    fun downloadQueueTitle() {
-        assertEquals("下载队列", NavigationItem.DownloadQueue.title)
+    fun downloadQueueTitleResId() {
+        assertEquals(R.string.nav_download_queue, NavigationItem.DownloadQueue.titleResId)
     }
 
     @Test
-    fun settingsTitle() {
-        assertEquals("设置", NavigationItem.Settings.title)
+    fun settingsTitleResId() {
+        assertEquals(R.string.nav_settings, NavigationItem.Settings.titleResId)
     }
 
     @Test
-    fun aboutTitle() {
-        assertEquals("关于", NavigationItem.About.title)
+    fun aboutTitleResId() {
+        assertEquals(R.string.nav_about, NavigationItem.About.titleResId)
     }
 }

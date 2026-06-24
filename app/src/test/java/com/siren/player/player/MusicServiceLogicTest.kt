@@ -1,5 +1,6 @@
 package com.siren.player.player
 
+import com.siren.player.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,39 +24,39 @@ class MusicServiceLogicTest {
 
     @Test
     fun playModeDisplayNamesAreChinese() {
+        // 验证所有 PlayMode 都有对应的资源 ID
         PlayMode.entries.forEach { mode ->
-            assertTrue(mode.displayName.isNotEmpty())
-            assertTrue(mode.displayName.all { it.code > 0x4E00 }) // Chinese characters
+            assertTrue(mode.displayNameResId != 0)
         }
     }
 
     @Test
     fun singleLoopMode() {
-        assertEquals("单曲循环", PlayMode.SINGLE_LOOP.displayName)
+        assertEquals(R.string.mode_single_loop, PlayMode.SINGLE_LOOP.displayNameResId)
         assertEquals(0, PlayMode.SINGLE_LOOP.ordinal)
     }
 
     @Test
     fun singleStopMode() {
-        assertEquals("单曲结束", PlayMode.SINGLE_STOP.displayName)
+        assertEquals(R.string.mode_single_stop, PlayMode.SINGLE_STOP.displayNameResId)
         assertEquals(1, PlayMode.SINGLE_STOP.ordinal)
     }
 
     @Test
     fun listLoopMode() {
-        assertEquals("列表循环", PlayMode.LIST_LOOP.displayName)
+        assertEquals(R.string.mode_list_loop, PlayMode.LIST_LOOP.displayNameResId)
         assertEquals(2, PlayMode.LIST_LOOP.ordinal)
     }
 
     @Test
     fun listStopMode() {
-        assertEquals("列表停止", PlayMode.LIST_STOP.displayName)
+        assertEquals(R.string.mode_list_stop, PlayMode.LIST_STOP.displayNameResId)
         assertEquals(3, PlayMode.LIST_STOP.ordinal)
     }
 
     @Test
     fun listShuffleMode() {
-        assertEquals("列表随机", PlayMode.LIST_SHUFFLE.displayName)
+        assertEquals(R.string.mode_list_shuffle, PlayMode.LIST_SHUFFLE.displayNameResId)
         assertEquals(4, PlayMode.LIST_SHUFFLE.ordinal)
     }
 

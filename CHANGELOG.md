@@ -17,6 +17,8 @@ All notable changes to this project will be documented in this file.
 - ANR in settings screen caused by MusicService not calling startForeground() within 5 seconds
   - Moved startForeground() call to the beginning of onCreate() with fallback notification
   - Full media notification is now updated after ExoPlayer and MediaSession initialization
+- Unit tests that referenced removed displayName/title properties
+  - Updated PlayModeTest, MusicServiceLogicTest, and NavigationTest to use resource IDs
 
 ## [1.0.0] - 2026-06-24
 

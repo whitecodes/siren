@@ -1,5 +1,6 @@
 package com.siren.player.player
 
+import com.siren.player.R
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -46,11 +47,12 @@ class PlayModeTest {
     }
 
     @Test
-    fun displayName() {
-        assertEquals("单曲循环", PlayMode.SINGLE_LOOP.displayName)
-        assertEquals("单曲结束", PlayMode.SINGLE_STOP.displayName)
-        assertEquals("列表循环", PlayMode.LIST_LOOP.displayName)
-        assertEquals("列表停止", PlayMode.LIST_STOP.displayName)
-        assertEquals("列表随机", PlayMode.LIST_SHUFFLE.displayName)
+    fun displayNameResIds() {
+        // 测试资源 ID 是否正确映射
+        assertEquals(R.string.mode_single_loop, PlayMode.SINGLE_LOOP.displayNameResId)
+        assertEquals(R.string.mode_single_stop, PlayMode.SINGLE_STOP.displayNameResId)
+        assertEquals(R.string.mode_list_loop, PlayMode.LIST_LOOP.displayNameResId)
+        assertEquals(R.string.mode_list_stop, PlayMode.LIST_STOP.displayNameResId)
+        assertEquals(R.string.mode_list_shuffle, PlayMode.LIST_SHUFFLE.displayNameResId)
     }
 }
