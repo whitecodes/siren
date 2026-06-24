@@ -316,15 +316,22 @@ fun SettingsScreen(
                     onClick = {
                         android.util.Log.d("SettingsScreen", "Clear cache clicked, isInternalStorage=$isInternalStorage")
                         scope.launch {
-                            android.util.Log.d("SettingsScreen", "Starting clearCache...")
-                            viewModel.clearCache()
-                            android.util.Log.d("SettingsScreen", "clearCache completed")
-                            // 清理完成后重启应用
-                            val packageManager = context.packageManager
-                            val intent = packageManager.getLaunchIntentForPackage(context.packageName)
-                            intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(intent)
-                            Runtime.getRuntime().exit(0)
+                            try {
+                                android.util.Log.d("SettingsScreen", "Starting clearCache...")
+                                viewModel.clearCache()
+                                android.util.Log.d("SettingsScreen", "clearCache completed")
+                                // 清理完成后重启应用
+                                android.util.Log.d("SettingsScreen", "Restarting app...")
+                                val packageManager = context.packageManager
+                                val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+                                android.util.Log.d("SettingsScreen", "Launch intent: $intent")
+                                intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                                android.util.Log.d("SettingsScreen", "startActivity called, calling exit(0)")
+                                Runtime.getRuntime().exit(0)
+                            } catch (e: Exception) {
+                                android.util.Log.e("SettingsScreen", "Error in clearCache: ${e.message}", e)
+                            }
                         }
                         showClearCacheDialog = false
                     }
