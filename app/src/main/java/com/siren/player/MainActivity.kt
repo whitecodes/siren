@@ -167,22 +167,15 @@ class MainActivity : ComponentActivity() {
     }
 
     fun showLanguageChangeDialog(mode: LanguageMode) {
-        android.util.Log.d("SirenApp", "showLanguageChangeDialog called with mode: $mode")
-        android.widget.Toast.makeText(this, "正在显示对话框...", android.widget.Toast.LENGTH_SHORT).show()
-        try {
-            android.app.AlertDialog.Builder(this)
-                .setTitle("切换语言")
-                .setMessage("切换语言需要退出应用，是否立即退出？")
-                .setPositiveButton("确定") { _, _ ->
-                    LanguageManager.setLanguageMode(mode)
-                    finishAffinity()
-                }
-                .setNegativeButton("取消", null)
-                .show()
-            android.util.Log.d("SirenApp", "AlertDialog.show() completed")
-        } catch (e: Exception) {
-            android.util.Log.e("SirenApp", "Error showing dialog: ${e.message}", e)
-        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("切换语言")
+            .setMessage("切换语言需要退出应用，是否立即退出？")
+            .setPositiveButton("确定") { _, _ ->
+                LanguageManager.setLanguageMode(mode)
+                finishAffinity()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     override fun onDestroy() {
