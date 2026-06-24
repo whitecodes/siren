@@ -158,11 +158,17 @@ class MusicRepository(private val context: Context) {
     }
 
     suspend fun clearCache(clearDownloads: Boolean = true) = withContext(Dispatchers.IO) {
+        android.util.Log.d("MusicRepository", "clearCache started, clearDownloads=$clearDownloads")
+
         // 1. 清理音乐缓存（专辑封面、流式播放缓存）
+        val cacheFiles = cacheDir.listFiles()
+        android.util.Log.d("MusicRepository", "Cache files to delete: ${cacheFiles?.size ?: 0}")
         cacheDir.listFiles()?.forEach { it.delete() }
 
         // 2. 清理数据库
+        android.util.Log.d("MusicRepository", "Clearing database tables...")
         db.clearAllTables()
+        android.util.Log.d("MusicRepository", "Database tables cleared")
 
         // 3. 清理 SharedPreferences（配置）
         clearPreferences()
@@ -171,6 +177,7 @@ class MusicRepository(private val context: Context) {
         if (clearDownloads) {
             clearDownloadFiles()
         }
+        android.util.Log.d("MusicRepository", "clearCache completed")
     }
 
     private fun clearPreferences() {
