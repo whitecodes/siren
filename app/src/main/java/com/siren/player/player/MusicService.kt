@@ -1,5 +1,6 @@
 package com.siren.player.player
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -8,13 +9,15 @@ import android.content.Intent
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import androidx.annotation.OptIn
+import android.view.KeyEvent
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaStyleNotificationHelper.MediaStyle
 import com.siren.player.MainActivity
 import com.siren.player.R
 
@@ -22,6 +25,7 @@ class MusicService : Service() {
 
     private val binder = LocalBinder()
     private var exoPlayer: ExoPlayer? = null
+    private var mediaSession: MediaSession? = null
     private var currentPlayMode = PlayMode.LIST_STOP
     private var _currentTrackIndex = 0
     var onPlaybackStateChange: (() -> Unit)? = null
@@ -37,14 +41,6 @@ class MusicService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        
-        // Start foreground immediately to avoid ANR
-        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("塞壬唱片")
-            .setContentText("音乐播放服务")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .build()
-        startForeground(NOTIFICATION_ID, notification)
 
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             addListener(object : Player.Listener {
@@ -52,12 +48,10 @@ class MusicService : Service() {
                     if (state == Player.STATE_ENDED) {
                         handlePlaybackEnd()
                     }
-                    updateNotification()
                     onPlaybackStateChange?.invoke()
                 }
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                    updateNotification()
                     onTrackChange?.invoke()
                 }
 
@@ -66,6 +60,22 @@ class MusicService : Service() {
                 }
             })
         }
+
+        // Create MediaSession — ExoPlayer is the player, session owns the notification
+        val sessionActivity = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        mediaSession = MediaSession.Builder(this, exoPlayer!!)
+            .setSessionActivity(sessionActivity)
+            .build()
+
+        // Start foreground with the media notification
+        startForeground(NOTIFICATION_ID, buildNotification())
     }
 
     private fun createNotificationChannel() {
@@ -82,33 +92,78 @@ class MusicService : Service() {
         }
     }
 
-    private fun updateNotification() {
-        val player = exoPlayer ?: return
-        if (!player.isPlaying && player.currentMediaItem == null) return
+    @OptIn(UnstableApi::class)
+    private fun buildNotification(): Notification {
+        val session = mediaSession ?: return fallbackNotification()
 
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val title = exoPlayer?.currentMediaItem?.mediaMetadata?.title?.toString() ?: "塞壬唱片"
 
-        val title = player.currentMediaItem?.mediaMetadata?.title?.toString() ?: "塞壬唱片"
-
-        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText("塞壬唱片")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentIntent(pendingIntent)
-            .setOngoing(player.isPlaying)
+            .setContentIntent(session.sessionActivity)
+            .setStyle(MediaStyle(session).setShowActionsInCompactView(0, 1, 2))
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(exoPlayer?.isPlaying == true)
+            .addAction(android.R.drawable.ic_media_previous, "Previous", mediaButtonPendingIntent(KeyEvent.KEYCODE_MEDIA_PREVIOUS))
+            .addAction(
+                if (exoPlayer?.isPlaying == true) android.R.drawable.ic_media_pause
+                else android.R.drawable.ic_media_play,
+                "Play/Pause",
+                mediaButtonPendingIntent(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+            )
+            .addAction(android.R.drawable.ic_media_next, "Next", mediaButtonPendingIntent(KeyEvent.KEYCODE_MEDIA_NEXT))
             .build()
+    }
 
-        startForeground(NOTIFICATION_ID, notification)
+    private fun fallbackNotification(): Notification {
+        return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle("塞壬唱片")
+            .setContentText("音乐播放服务")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .build()
+    }
+
+    private fun mediaButtonPendingIntent(keyCode: Int): PendingIntent {
+        val keyEvent = KeyEvent(KeyEvent.ACTION_DOWN, keyCode)
+        val intent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+            putExtra(Intent.EXTRA_KEY_EVENT, keyEvent)
+        }
+        return PendingIntent.getBroadcast(
+            this, keyCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun updateNotification() {
+        val nm = getSystemService(NotificationManager::class.java)
+        nm.notify(NOTIFICATION_ID, buildNotification())
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // MediaButtonReceiver forwards media button events here via onCustomCommand
+        // But as a bound service we also handle direct media button intents
+        if (intent?.action == Intent.ACTION_MEDIA_BUTTON) {
+            val keyEvent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT)
+            }
+            keyEvent?.let { handleMediaButton(it.keyCode) }
+        }
         return START_STICKY
+    }
+
+    private fun handleMediaButton(keyCode: Int) {
+        when (keyCode) {
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+            KeyEvent.KEYCODE_MEDIA_PLAY,
+            KeyEvent.KEYCODE_MEDIA_PAUSE -> togglePlayPause()
+            KeyEvent.KEYCODE_MEDIA_NEXT -> skipToNext()
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> skipToPrevious()
+        }
     }
 
     private fun handlePlaybackEnd() {
@@ -272,7 +327,7 @@ class MusicService : Service() {
                     .build()
             )
             .build()
-        
+
         if (player.mediaItemCount == 0) {
             // First item: need to set, prepare and play
             player.setMediaItem(mediaItem)
@@ -287,13 +342,12 @@ class MusicService : Service() {
 
     fun clearPlaylist() {
         val player = exoPlayer ?: return
-        val currentIndex = player.currentMediaItemIndex
         val currentUrl = player.currentMediaItem?.localConfiguration?.uri?.toString()
         val currentTitle = player.currentMediaItem?.mediaMetadata?.title?.toString()
-        
+
         // Clear all items
         player.clearMediaItems()
-        
+
         // If there was a playing item, keep it
         if (currentUrl != null && currentTitle != null) {
             val mediaItem = MediaItem.Builder()
@@ -319,7 +373,6 @@ class MusicService : Service() {
         android.util.Log.d("SirenPlayer", "skipToIndex: index=$index, mediaItemCount=${player.mediaItemCount}, currentTitle=${player.currentMediaItem?.mediaMetadata?.title}")
         if (index in 0 until player.mediaItemCount) {
             _currentTrackIndex = index
-            // seekTo(mediaItemIndex, positionMs) - skip to specific media item at beginning
             player.seekTo(index, 0)
             if (!player.isPlaying) {
                 player.play()
@@ -334,7 +387,6 @@ class MusicService : Service() {
         get() {
             val player = exoPlayer ?: return _currentTrackIndex
             val realIndex = player.currentMediaItemIndex
-            // Update our tracking variable when ExoPlayer reports a different index
             if (realIndex != _currentTrackIndex && realIndex >= 0) {
                 _currentTrackIndex = realIndex
             }
@@ -352,6 +404,7 @@ class MusicService : Service() {
     val shuffleModeEnabled: Boolean get() = exoPlayer?.shuffleModeEnabled == true
 
     override fun onDestroy() {
+        mediaSession?.release()
         exoPlayer?.release()
         super.onDestroy()
     }
