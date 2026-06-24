@@ -95,6 +95,7 @@ fun SettingsScreen(
     val themeMode by ThemeManager.themeMode.collectAsState()
     val languageMode by LanguageManager.languageMode.collectAsState()
     val context = LocalContext.current
+    val isInternalStorage = viewModel.downloadManager.isInternalStoragePath()
 
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -302,7 +303,14 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showClearCacheDialog = false },
             title = { Text(stringResource(R.string.clear_cache)) },
-            text = { Text(stringResource(R.string.clear_cache_confirm)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (isInternalStorage) R.string.clear_cache_confirm_internal
+                        else R.string.clear_cache_confirm_external
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {

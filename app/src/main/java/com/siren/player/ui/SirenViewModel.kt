@@ -140,7 +140,8 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun getCachedPath(cid: String): String? = repository.getCachedPath(cid)
 
     suspend fun clearCache() {
-        repository.clearCache()
+        val shouldClearDownloads = downloadManager.isInternalStoragePath()
+        repository.clearCache(clearDownloads = shouldClearDownloads)
     }
 
     fun clearError() {

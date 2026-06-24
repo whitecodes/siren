@@ -16,7 +16,7 @@ import okhttp3.Request
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-class MusicRepository(context: Context) {
+class MusicRepository(private val context: Context) {
 
     private val db = SirenDatabase.create(context)
     private val albumDao = db.albumDao()
@@ -157,7 +157,39 @@ class MusicRepository(context: Context) {
         }
     }
 
-    suspend fun clearCache() {
+    suspend fun clearCache(clearDownloads: Boolean = true) {
+        // 1. 清理音乐缓存（专辑封面、流式播放缓存）
         cacheDir.listFiles()?.forEach { it.delete() }
+
+        // 2. 清理数据库
+        db.clearAllTables()
+
+        // 3. 清理 SharedPreferences（配置）
+        clearPreferences()
+
+        // 4. 如果是内置存储，也清理下载文件
+        if (clearDownloads) {
+            clearDownloadFiles()
+        }
+    }
+
+    private fun clearPreferences() {
+        val prefsNames = listOf("download_prefs", "theme_prefs", "language_prefs")
+        prefsNames.forEach { name ->
+            context.getSharedPreferences(name, Context.MODE_PRIVATE)
+                .edit().clear().apply()
+        }
+    }
+
+    private fun clearDownloadFiles() {
+        val downloadDir = File(context.cacheDir, "downloads")
+        downloadDir.listFiles()?.forEach { file ->
+            if (file.isDirectory) {
+                file.listFiles()?.forEach { it.delete() }
+                file.delete()
+            } else {
+                file.delete()
+            }
+        }
     }
 }

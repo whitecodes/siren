@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Updated TopAppBar colors to use surfaceContainer theme
 - Improved icon tint consistency across the app
+- Cache clearing now behaves differently based on download storage type
+  - Internal storage: clears everything (database, config, downloaded files)
+  - External storage: clears only database and config, preserves downloaded files
 
 ### Fixed
 - ANR in settings screen caused by MusicService not calling startForeground() within 5 seconds

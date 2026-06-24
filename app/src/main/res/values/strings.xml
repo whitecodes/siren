@@ -65,7 +65,8 @@
     <string name="settings">设置</string>
     <string name="cache_management">缓存管理</string>
     <string name="clear_cache">清除缓存</string>
-    <string name="clear_cache_confirm">确定要清除所有缓存吗？这将删除所有已下载的歌曲。</string>
+    <string name="clear_cache_confirm_internal">确定要清除所有缓存吗？这将删除数据库、配置和所有已下载的歌曲。</string>
+    <string name="clear_cache_confirm_external">确定要清除缓存吗？将删除数据库和配置，已下载的歌曲将保留。</string>
     <string name="confirm">确定</string>
     <string name="cancel">取消</string>
     <string name="download_path">下载路径</string>

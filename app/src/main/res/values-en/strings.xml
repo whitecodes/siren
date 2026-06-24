@@ -63,7 +63,8 @@
     <string name="settings">Settings</string>
     <string name="cache_management">Cache Management</string>
     <string name="clear_cache">Clear Cache</string>
-    <string name="clear_cache_confirm">Clear all cache? This will delete all downloaded songs.</string>
+    <string name="clear_cache_confirm_internal">Clear all cache? This will delete the database, config, and all downloaded songs.</string>
+    <string name="clear_cache_confirm_external">Clear cache? Database and config will be deleted, but downloaded songs will be preserved.</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
     <string name="download_path">Download Path</string>

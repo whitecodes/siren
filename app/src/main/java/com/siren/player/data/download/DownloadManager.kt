@@ -112,6 +112,10 @@ class DownloadManager(
     val downloadPath: String
         get() = prefs.getString(KEY_DOWNLOAD_PATH, null) ?: getDefaultDownloadPath()
 
+    fun isInternalStoragePath(): Boolean {
+        return downloadPath.startsWith(context.cacheDir.absolutePath)
+    }
+
     fun setDownloadPath(path: String) {
         prefs.edit().putString(KEY_DOWNLOAD_PATH, path).apply()
     }
