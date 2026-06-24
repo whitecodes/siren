@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -370,11 +371,19 @@ fun SirenApp(
                     navigationIcon = {
                         if (currentNavItem == NavigationItem.Album && selectedAlbumCid != null) {
                             IconButton(onClick = { selectedAlbumCid = null }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
+                                Icon(
+                                    Icons.Default.ArrowBack,
+                                    contentDescription = stringResource(R.string.back),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         } else {
                             IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
+                                Icon(
+                                    Icons.Default.Menu,
+                                    contentDescription = stringResource(R.string.menu),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     },
@@ -382,14 +391,64 @@ fun SirenApp(
                         if (currentNavItem == NavigationItem.Album) {
                             if (selectedAlbumCid == null) {
                                 IconButton(onClick = { showSearch = !showSearch }) {
-                                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search))
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = stringResource(R.string.search),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                                 IconButton(onClick = { viewModel.loadAlbums(forceRefresh = true) }) {
-                                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
+                                    Icon(
+                                        Icons.Default.Refresh,
+                                        contentDescription = stringResource(R.string.refresh),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                             } else {
-                                IconButton(onClick = { viewModel.refreshAlbum() }) {
-                                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
+                                Row {
+                                    IconButton(onClick = { viewModel.refreshAlbum() }) {
+                                        Icon(
+                                            Icons.Default.Refresh,
+                                            contentDescription = stringResource(R.string.refresh),
+                                            tint = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    IconButton(onClick = {
+                                        musicService?.let { svc ->
+                                            viewModel.currentAlbum.value?.songs?.forEach { song ->
+                                                val detail = viewModel.getSongDetail(song.cid)
+                                                if (detail != null) {
+                                                    val cachedPath = runBlocking { viewModel.database.songDao().getLocalPath(song.cid) }
+                                                    val url = cachedPath ?: detail.sourceUrl
+                                                    svc.addToPlaylist(url, detail.name)
+                                                }
+                                            }
+                                        }
+                                    }) {
+                                        Icon(
+                                            Icons.Default.PlayArrow,
+                                            contentDescription = stringResource(R.string.play_album),
+                                            tint = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    IconButton(onClick = {
+                                        musicService?.let { svc ->
+                                            viewModel.currentAlbum.value?.songs?.forEach { song ->
+                                                val detail = viewModel.getSongDetail(song.cid)
+                                                if (detail != null) {
+                                                    val cachedPath = runBlocking { viewModel.database.songDao().getLocalPath(song.cid) }
+                                                    val url = cachedPath ?: detail.sourceUrl
+                                                    svc.addToPlaylist(url, detail.name)
+                                                }
+                                            }
+                                        }
+                                    }) {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            contentDescription = stringResource(R.string.add_album_to_playlist),
+                                            tint = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
                             }
                         } else if (currentNavItem == NavigationItem.Playlist) {
@@ -403,13 +462,13 @@ fun SirenApp(
                                     Text(
                                         text = stringResource(currentPlayMode.displayNameResId),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Icon(
                                         if (showPlayModeMenu) Icons.Default.ArrowDropUp
                                         else Icons.Default.ArrowDropDown,
                                         contentDescription = stringResource(R.string.select_play_mode),
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -436,13 +495,19 @@ fun SirenApp(
                                 }
                             }
                             IconButton(onClick = { musicService?.clearPlaylist() }) {
-                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.clear_playlist))
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.clear_playlist),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             },

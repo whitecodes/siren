@@ -40,7 +40,6 @@ import coil.compose.AsyncImage
 import com.siren.player.R
 import com.siren.player.data.api.SongInfo
 import com.siren.player.data.download.DownloadEvent
-import com.siren.player.data.download.DownloadManager
 import com.siren.player.data.download.DownloadQueue
 import com.siren.player.db.DownloadStatus
 import com.siren.player.player.MusicService
@@ -55,7 +54,6 @@ fun AlbumDetailScreen(
     viewModel: SirenViewModel,
     musicService: MusicService?,
     onPlaySong: (songCid: String, songName: String, albumCid: String) -> Unit,
-    downloadManager: DownloadManager? = null
 ) {
     val album by viewModel.currentAlbum.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -146,6 +144,7 @@ fun AlbumDetailScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
 
@@ -168,14 +167,7 @@ fun AlbumDetailScreen(
                                 }
                             }
                         },
-                        onDownload = {
-                            scope.launch {
-                                val detail = viewModel.getSongDetail(song.cid)
-                                if (detail != null && downloadManager != null) {
-                                    downloadManager.enqueue(detail)
-                                }
-                            }
-                        }
+                        onDownload = { }
                     )
                 }
             }

@@ -21,6 +21,8 @@
     <string name="tap_to_refresh">点击刷新重试</string>
     <string name="songs_count">%d 首歌曲</string>
     <string name="album_name">塞壬唱片</string>
+    <string name="play_album">播放专辑</string>
+    <string name="add_album_to_playlist">添加专辑到播放列表</string>
 
     <!-- Player -->
     <string name="now_playing">正在播放</string>

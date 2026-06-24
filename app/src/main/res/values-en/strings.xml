@@ -21,6 +21,8 @@
     <string name="tap_to_refresh">Tap to refresh</string>
     <string name="songs_count">%d songs</string>
     <string name="album_name">Siren Records</string>
+    <string name="play_album">Play Album</string>
+    <string name="add_album_to_playlist">Add Album to Playlist</string>
 
     <!-- Player -->
     <string name="now_playing">Now Playing</string>
