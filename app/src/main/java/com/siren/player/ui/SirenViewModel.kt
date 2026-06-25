@@ -57,6 +57,13 @@ class SirenViewModel(application: Application) : AndroidViewModel(application) {
     private val _downloadUri = MutableStateFlow(downloadManager.downloadUri)
     val downloadUri: StateFlow<Uri?> = _downloadUri
 
+    private val _currentCoverUrl = MutableStateFlow<String?>(null)
+    val currentCoverUrl: StateFlow<String?> = _currentCoverUrl
+
+    fun updateCoverUrl(url: String?) {
+        _currentCoverUrl.value = url
+    }
+
     init {
         loadAlbums(forceRefresh = false)
     }

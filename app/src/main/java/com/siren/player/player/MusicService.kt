@@ -12,6 +12,7 @@ import android.os.IBinder
 import android.view.KeyEvent
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -210,15 +211,17 @@ class MusicService : Service() {
         }
     }
 
-    fun play(urls: List<Pair<String, String>>, startIndex: Int = 0) {
+    fun play(urls: List<Pair<String, String>>, startIndex: Int = 0, coverUrl: String? = null) {
         val player = exoPlayer ?: return
         android.util.Log.d("SirenPlayer", "MusicService.play: startIndex=$startIndex, urls.size=${urls.size}")
+        val artworkUri = coverUrl?.let { android.net.Uri.parse(it) }
         val mediaItems = urls.map { (url, title) ->
             MediaItem.Builder()
                 .setUri(url)
                 .setMediaMetadata(
-                    androidx.media3.common.MediaMetadata.Builder()
+                    MediaMetadata.Builder()
                         .setTitle(title)
+                        .setArtworkUri(artworkUri)
                         .build()
                 )
                 .build()
@@ -230,13 +233,14 @@ class MusicService : Service() {
         android.util.Log.d("SirenPlayer", "MusicService.play: player started, currentMediaItemIndex=${player.currentMediaItemIndex}")
     }
 
-    fun playSingle(url: String, title: String) {
+    fun playSingle(url: String, title: String, coverUrl: String? = null) {
         val player = exoPlayer ?: return
         val mediaItem = MediaItem.Builder()
             .setUri(url)
             .setMediaMetadata(
-                androidx.media3.common.MediaMetadata.Builder()
+                MediaMetadata.Builder()
                     .setTitle(title)
+                    .setArtworkUri(coverUrl?.let { android.net.Uri.parse(it) })
                     .build()
             )
             .build()
@@ -320,7 +324,7 @@ class MusicService : Service() {
         }
     }
 
-    fun addToPlaylist(url: String, title: String): Boolean {
+    fun addToPlaylist(url: String, title: String, coverUrl: String? = null): Boolean {
         val player = exoPlayer ?: return false
         // Check for duplicates by URL
         for (i in 0 until player.mediaItemCount) {
@@ -333,8 +337,9 @@ class MusicService : Service() {
         val mediaItem = MediaItem.Builder()
             .setUri(url)
             .setMediaMetadata(
-                androidx.media3.common.MediaMetadata.Builder()
+                MediaMetadata.Builder()
                     .setTitle(title)
+                    .setArtworkUri(coverUrl?.let { android.net.Uri.parse(it) })
                     .build()
             )
             .build()
@@ -353,8 +358,10 @@ class MusicService : Service() {
 
     fun clearPlaylist() {
         val player = exoPlayer ?: return
-        val currentUrl = player.currentMediaItem?.localConfiguration?.uri?.toString()
-        val currentTitle = player.currentMediaItem?.mediaMetadata?.title?.toString()
+        val currentItem = player.currentMediaItem
+        val currentUrl = currentItem?.localConfiguration?.uri?.toString()
+        val currentTitle = currentItem?.mediaMetadata?.title?.toString()
+        val currentCoverUrl = currentItem?.mediaMetadata?.artworkUri?.toString()
 
         // Clear all items
         player.clearMediaItems()
@@ -364,8 +371,9 @@ class MusicService : Service() {
             val mediaItem = MediaItem.Builder()
                 .setUri(currentUrl)
                 .setMediaMetadata(
-                    androidx.media3.common.MediaMetadata.Builder()
+                    MediaMetadata.Builder()
                         .setTitle(currentTitle)
+                        .setArtworkUri(currentCoverUrl?.let { android.net.Uri.parse(it) })
                         .build()
                 )
                 .build()
@@ -410,6 +418,8 @@ class MusicService : Service() {
     val mediaItemCount: Int get() = exoPlayer?.mediaItemCount ?: 0
     val currentTitle: String
         get() = exoPlayer?.currentMediaItem?.mediaMetadata?.title?.toString() ?: ""
+    val currentCoverUrl: String?
+        get() = exoPlayer?.currentMediaItem?.mediaMetadata?.artworkUri?.toString()
     val playMode: PlayMode get() = currentPlayMode
     val repeatMode: Int get() = exoPlayer?.repeatMode ?: Player.REPEAT_MODE_OFF
     val shuffleModeEnabled: Boolean get() = exoPlayer?.shuffleModeEnabled == true

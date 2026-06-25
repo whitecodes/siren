@@ -53,7 +53,7 @@ import kotlinx.coroutines.withContext
 fun AlbumDetailScreen(
     viewModel: SirenViewModel,
     musicService: MusicService?,
-    onPlaySong: (songCid: String, songName: String, albumCid: String) -> Unit,
+    onPlaySong: (songCid: String, songName: String, albumCid: String, coverUrl: String?) -> Unit,
 ) {
     val album by viewModel.currentAlbum.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -156,13 +156,13 @@ fun AlbumDetailScreen(
                         index = index,
                         downloadStatus = status,
                         downloadProgress = progress,
-                        onPlay = { onPlaySong(song.cid, song.name, song.albumCid) },
+                        onPlay = { onPlaySong(song.cid, song.name, song.albumCid, album?.coverUrl) },
                         onAddToPlaylist = {
                             scope.launch {
                                 val detail = viewModel.getSongDetail(song.cid)
                                 if (detail != null) {
                                     withContext(Dispatchers.Main) {
-                                        musicService?.addToPlaylist(detail.sourceUrl, detail.name)
+                                        musicService?.addToPlaylist(detail.sourceUrl, detail.name, album?.coverUrl)
                                     }
                                 }
                             }

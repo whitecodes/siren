@@ -204,16 +204,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun playSong(songCid: String, songName: String, albumCid: String) {
+    private fun playSong(songCid: String, songName: String, albumCid: String, coverUrl: String? = null) {
         val service = musicService ?: return
         val db = (application as SirenApp).database
         Thread {
             val detail = SirenApi.getSongDetail(songCid) ?: return@Thread
             val cachedPath = runBlocking { db.songDao().getLocalPath(songCid) }
             val url = cachedPath ?: detail.sourceUrl
-            
+
             runOnUiThread {
-                val added = service.addToPlaylist(url, detail.name)
+                val added = service.addToPlaylist(url, detail.name, coverUrl)
                 if (!added) {
                     // Song already in playlist, skip to it
                     val playlist = service.getPlaylist()
@@ -230,7 +230,7 @@ class MainActivity : ComponentActivity() {
         }.start()
     }
 
-    private fun playAlbum(albumCid: String) {
+    private fun playAlbum(albumCid: String, coverUrl: String? = null) {
         val service = musicService ?: return
         val db = (application as SirenApp).database
         val repository = com.siren.player.data.repository.MusicRepository(application)
@@ -244,7 +244,7 @@ class MainActivity : ComponentActivity() {
             }
             if (urls.isNotEmpty()) {
                 runOnUiThread {
-                    service.play(urls)
+                    service.play(urls, coverUrl = coverUrl)
                 }
             }
         }.start()
@@ -255,8 +255,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun SirenApp(
     musicService: MusicService?,
-    onPlaySong: (String, String, String) -> Unit,
-    onPlayAlbum: (String) -> Unit,
+    onPlaySong: (String, String, String, String?) -> Unit,
+    onPlayAlbum: (String, String?) -> Unit,
     onLanguageChange: (LanguageMode) -> Unit
 ) {
     val viewModel: SirenViewModel = viewModel()
@@ -280,7 +280,24 @@ fun SirenApp(
     }
 
     if (showPlayer && musicService != null) {
-        val currentCoverUrl = viewModel.currentAlbum.collectAsState().value?.coverUrl
+        val currentCoverUrl = viewModel.currentCoverUrl.collectAsState().value
+            ?: viewModel.currentAlbum.collectAsState().value?.coverUrl
+
+        // Sync cover URL from MusicService when track changes
+        DisposableEffect(musicService) {
+            val svc = musicService ?: return@DisposableEffect onDispose {}
+            val callback = {
+                val url = svc.currentCoverUrl
+                viewModel.updateCoverUrl(url)
+            }
+            svc.onTrackChange = callback
+            // Initialize with current track's cover
+            callback()
+            onDispose {
+                svc.onTrackChange = null
+            }
+        }
+
         PlayerScreen(
             musicService = musicService,
             onBack = { showPlayer = false },
@@ -417,12 +434,13 @@ fun SirenApp(
                                     }
                                     IconButton(onClick = {
                                         musicService?.let { svc ->
+                                            val coverUrl = viewModel.currentAlbum.value?.coverUrl
                                             viewModel.currentAlbum.value?.songs?.forEach { song ->
                                                 val detail = viewModel.getSongDetail(song.cid)
                                                 if (detail != null) {
                                                     val cachedPath = runBlocking { viewModel.database.songDao().getLocalPath(song.cid) }
                                                     val url = cachedPath ?: detail.sourceUrl
-                                                    svc.addToPlaylist(url, detail.name)
+                                                    svc.addToPlaylist(url, detail.name, coverUrl)
                                                 }
                                             }
                                         }
@@ -435,12 +453,13 @@ fun SirenApp(
                                     }
                                     IconButton(onClick = {
                                         musicService?.let { svc ->
+                                            val coverUrl = viewModel.currentAlbum.value?.coverUrl
                                             viewModel.currentAlbum.value?.songs?.forEach { song ->
                                                 val detail = viewModel.getSongDetail(song.cid)
                                                 if (detail != null) {
                                                     val cachedPath = runBlocking { viewModel.database.songDao().getLocalPath(song.cid) }
                                                     val url = cachedPath ?: detail.sourceUrl
-                                                    svc.addToPlaylist(url, detail.name)
+                                                    svc.addToPlaylist(url, detail.name, coverUrl)
                                                 }
                                             }
                                         }
