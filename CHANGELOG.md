@@ -13,6 +13,11 @@ All notable changes to this project will be documented in this file.
   - UI shows converted path for readability
   - Actual file operations use URI for proper scoped storage support
 
+### Fixed
+- Downloaded songs (via SAF) not playable after app restart
+  - Call `takePersistableUriPermission()` when setting download URI
+  - Ensures ExoPlayer can read `content://` URIs for SAF-stored files
+
 ### Changed
 - Updated TopAppBar colors to use surfaceContainer theme
 - Improved icon tint consistency across the app

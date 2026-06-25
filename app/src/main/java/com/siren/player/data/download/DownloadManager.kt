@@ -142,6 +142,16 @@ class DownloadManager(
     }
 
     fun setDownloadUri(uri: Uri) {
+        // 持久化 SAF 权限，确保 app 重启后 ExoPlayer 仍能读取 content:// URI
+        try {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("DownloadManager", "Failed to persist SAF permission: ${e.message}")
+        }
         prefs.edit()
             .putString(KEY_DOWNLOAD_URI, uri.toString())
             .putString(KEY_DOWNLOAD_PATH, uriToPath(uri))
