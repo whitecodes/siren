@@ -284,6 +284,10 @@ fun SirenApp(
         PlayerScreen(
             musicService = musicService,
             onBack = { showPlayer = false },
+            onPlaylist = {
+                showPlayer = false
+                currentNavItem = NavigationItem.Playlist
+            },
             coverUrl = currentCoverUrl
         )
         return

@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.SirenPlayer" parent="android:Theme.Material.NoActionBar" />
+
+    <!-- 自定义 Slider 样式：细轨道 + 小滑块 -->
+    <style name="Widget.Siren.Slider" parent="Widget.Material3.Slider">
+        <item name="trackHeight">4dp</item>
+        <item name="thumbHeight">16dp</item>
+        <item name="thumbWidth">16dp</item>
+        <item name="haloRadius">0dp</item>
+        <item name="thumbElevation">2dp</item>
+    </style>
+
+    <!-- 包含自定义 Slider 样式的主题 -->
+    <style name="Theme.Siren.Slider" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="sliderStyle">@style/Widget.Siren.Slider</item>
+    </style>
 </resources>

@@ -19,6 +19,12 @@ All notable changes to this project will be documented in this file.
   - Ensures ExoPlayer can read `content://` URIs for SAF-stored files
 
 ### Changed
+- Redesigned player screen with dynamic gradient background from album art
+- Album art now displays correctly (ContentScale.Fit, no crop, no rotation)
+- Progress bar uses View-based Material Slider for full styling control
+  - Dynamic colors: darkVibrant/lightVibrant for track, vibrant for thumb
+  - Custom track height (4dp) and thumb size (16dp)
+- Play mode text replaced with playlist button (navigates to playlist)
 - Updated TopAppBar colors to use surfaceContainer theme
 - Improved icon tint consistency across the app
 - Cache clearing now behaves differently based on download storage type
