@@ -13,10 +13,6 @@
 - **多语言**：支持中文、英文、日文
 
 ![main](./screenshot/Screenshot_main.png)
-![album](./screenshot/Screenshot_album.png)
-![now playing](./screenshot/Screenshot_nowplaying.png)
-![sidebar](./screenshot/Screenshot_sidebar.png)
-![settings](./screenshot/Screenshot_settings.png)
 
 ## 系统要求
 
