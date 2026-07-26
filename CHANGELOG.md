@@ -33,6 +33,11 @@ All notable changes to this project will be documented in this file.
 - Download operations now use DocumentFile API when URI is available
 - Rebuild database now uses DocumentFile API for directory traversal
 
+### Added
+- Release signing keystore and GitHub Actions workflow for signed APK builds
+  - Certificate excluded from git via .gitignore
+  - CI generates keystore.properties from secrets before build, cleans up afterwards
+
 ### Fixed
 - ANR in settings screen caused by MusicService not calling startForeground() within 5 seconds
   - Moved startForeground() call to the beginning of onCreate() with fallback notification

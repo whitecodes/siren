@@ -12,3 +12,7 @@ local.properties
 /.kotlin
 AGENTS.md
 CLAUDE.md
+
+# Release signing
+/app/release.jks
+keystore.properties

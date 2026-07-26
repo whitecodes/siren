@@ -1,9 +1,17 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
+
+// --- Release signing ---
+// keystore.properties is expected to exist locally (gitignored).
+// On CI, it's created by a workflow step before the build.
+val props = Properties().apply { load(FileInputStream(rootProject.file("keystore.properties"))) }
 
 android {
     namespace = "com.siren.player"
@@ -17,10 +25,22 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("app/" + props.getProperty("storeFile").trim())
+            storePassword = props.getProperty("storePassword").trim()
+            keyPassword = props.getProperty("keyPassword").trim()
+            keyAlias = props.getProperty("keyAlias").trim()
+            enableV1Signing = true
+            enableV2Signing = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
