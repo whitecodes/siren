@@ -13,6 +13,8 @@ local.properties
 AGENTS.md
 CLAUDE.md
 
+/lib_source
+
 # Release signing
 /app/release.jks
 keystore.properties

@@ -70,10 +70,10 @@ fun AlbumListScreen(
         }
         else -> {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(2.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                columns = GridCells.Fixed(4),
+                contentPadding = PaddingValues(0.dp),
+                horizontalArrangement = Arrangement.spacedBy(0.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 items(displayAlbums, key = { it.cid }) { album ->
                     AlbumCard(album = album, onClick = { onAlbumClick(album.cid) })
