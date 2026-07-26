@@ -31,14 +31,33 @@ jobs:
 
       - name: Prepare release signing key
         if: github.event_name == 'push'
+        env:
+          STORE_PASS: ${{ secrets.SIREN_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.SIREN_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIREN_KEY_ALIAS }}
         run: |
-          echo "${{ secrets.SIREN_KEYSTORE_BASE64 }}" | base64 -d > "$KEYSTORE_PATH"
           cat > "$KEYSTORE_PROPS_PATH" <<EOF
           storeFile = release.jks
-          storePassword = ${{ secrets.SIREN_STORE_PASSWORD }}
-          keyPassword = ${{ secrets.SIREN_KEY_PASSWORD }}
-          keyAlias = ${{ secrets.SIREN_KEY_ALIAS }}
+          storePassword = $STORE_PASS
+          keyPassword = $KEY_PASS
+          keyAlias = $KEY_ALIAS
           EOF
+          base64 -d > "$KEYSTORE_PATH" <<< "${{ secrets.SIREN_KEYSTORE_BASE64 }}"
+
+      - name: Debug verify keystore
+        if: github.event_name == 'push'
+        env:
+          STORE_PASS: ${{ secrets.SIREN_STORE_PASSWORD }}
+        run: |
+          echo "=== Keystore file ==="
+          ls -la "$KEYSTORE_PATH"
+          file "$KEYSTORE_PATH"
+          echo "=== Magic bytes (fe01fe01=PKCS12, feedfeed=JKS) ==="
+          xxd -l 4 "$KEYSTORE_PATH"
+          echo "=== Properties ==="
+          cat "$KEYSTORE_PROPS_PATH"
+          echo "=== keytool verify ==="
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASS" 2>&1
 
       - name: Build release APK
         if: github.event_name == 'push'
