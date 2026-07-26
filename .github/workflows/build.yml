@@ -58,12 +58,7 @@ jobs:
           EOF
 
       - name: Build APKs
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            ./gradlew assembleDebug assembleRelease
-          else
-            ./gradlew assembleDebug
-          fi
+        run: ./gradlew assembleDebug ${{ github.event_name == 'push' && 'assembleRelease' || '' }}
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
