@@ -57,8 +57,12 @@ jobs:
           keyAlias = $KEY_ALIAS
           EOF
 
-      - name: Build APKs
-        run: ./gradlew assembleDebug ${{ github.event_name == 'push' && 'assembleRelease' || '' }}
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Build release APK
+        if: github.event_name == 'push'
+        run: ./gradlew assembleRelease
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
