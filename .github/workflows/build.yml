@@ -49,14 +49,21 @@ jobs:
         if: github.event_name == 'push'
         env:
           STORE_PASS: ${{ secrets.SIREN_STORE_PASSWORD }}
+          KEYSTORE_B64: ${{ secrets.SIREN_KEYSTORE_BASE64 }}
         run: |
+          echo "=== Base64 length ==="
+          echo "${#KEYSTORE_B64}"
+          echo "=== Base64 first 40 chars ==="
+          echo "${KEYSTORE_B64:0:40}"
+          echo "=== Base64 last 40 chars ==="
+          echo "${KEYSTORE_B64: ${#KEYSTORE_B64} - 40}"
           echo "=== Keystore file ==="
           ls -la "$KEYSTORE_PATH"
           file "$KEYSTORE_PATH"
-          echo "=== Magic bytes (fe01fe01=PKCS12, feedfeed=JKS) ==="
+          echo "=== Magic bytes ==="
           xxd -l 4 "$KEYSTORE_PATH"
-          echo "=== Properties ==="
-          cat "$KEYSTORE_PROPS_PATH"
+          echo "=== Properties (passwords hidden) ==="
+          grep -v Password "$KEYSTORE_PROPS_PATH"
           echo "=== keytool verify ==="
           keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASS" 2>&1
 
