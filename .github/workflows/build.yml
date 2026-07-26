@@ -29,6 +29,18 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # Create placeholder so build.gradle.kts always finds it
+      # (overwritten with real secrets on push)
+      - name: Create placeholder keystore.properties
+        run: |
+          cat > "$KEYSTORE_PROPS_PATH" <<EOF
+          storeFile = release.jks
+          storePassword = placeholder
+          keyPassword = placeholder
+          keyAlias = placeholder
+          EOF
+
+      # Only on push: inject real signing secrets
       - name: Prepare release signing key
         if: github.event_name == 'push'
         env:
@@ -37,13 +49,13 @@ jobs:
           KEY_ALIAS: ${{ secrets.SIREN_KEY_ALIAS }}
           KEYSTORE_B64: ${{ secrets.SIREN_KEYSTORE_BASE64 }}
         run: |
+          base64 -d > "$KEYSTORE_PATH" <<< "$KEYSTORE_B64"
           cat > "$KEYSTORE_PROPS_PATH" <<EOF
           storeFile = release.jks
           storePassword = $STORE_PASS
           keyPassword = $KEY_PASS
           keyAlias = $KEY_ALIAS
           EOF
-          base64 -d > "$KEYSTORE_PATH" <<< "$KEYSTORE_B64"
 
       - name: Debug verify keystore
         if: github.event_name == 'push'
@@ -55,17 +67,24 @@ jobs:
           echo "${#KEYSTORE_B64}"
           echo "=== Base64 first 40 chars ==="
           echo "${KEYSTORE_B64:0:40}"
-          echo "=== Base64 last 40 chars ==="
-          echo "${KEYSTORE_B64: ${#KEYSTORE_B64} - 40}"
           echo "=== Keystore file ==="
           ls -la "$KEYSTORE_PATH"
           file "$KEYSTORE_PATH"
           echo "=== Magic bytes ==="
           xxd -l 4 "$KEYSTORE_PATH"
-          echo "=== Properties (passwords hidden) ==="
-          grep -v Password "$KEYSTORE_PROPS_PATH"
           echo "=== keytool verify ==="
           keytool -list -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASS" 2>&1
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
 
       - name: Build release APK
         if: github.event_name == 'push'
@@ -79,17 +98,13 @@ jobs:
           path: app/build/outputs/apk/release/app-release.apk
           retention-days: 30
 
+      # Clean up signing material regardless of success
       - name: Clean release signing key
         if: github.event_name == 'push' && always()
         run: rm -f "$KEYSTORE_PATH" "$KEYSTORE_PROPS_PATH"
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
+      # PR/debug: remove only the placeholder props so local debug builds
+      # that rely on the real keystore.properties are unaffected on dev machines
+      - name: Clean placeholder
+        if: github.event_name != 'push' && always()
+        run: rm -f "$KEYSTORE_PROPS_PATH"
