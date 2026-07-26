@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">塞壬唱片</string>
     <string name="app_slogan">A WORLD FAMILIARLY UNKNOWN</string>
-    <string name="version">v0.1.0</string>
+    <string name="version">v0.0.1</string>
 
     <!-- Navigation -->
     <string name="nav_album">专辑</string>
@@ -91,7 +91,5 @@
     <string name="made_with">Made with Jetpack Compose</string>
     <string name="github">GitHub</string>
     <string name="github_url">github.com/whitecodes/siren</string>
-    <string name="feature_love">热爱</string>
-    <string name="feature_music">音乐</string>
-    <string name="feature_quality">品质</string>
+    <string name="links">相关链接</string>
 </resources>
