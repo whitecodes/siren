@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Siren Records</string>
     <string name="app_slogan">A WORLD FAMILIARLY UNKNOWN</string>
-    <string name="version">v0.1.0</string>
+    <string name="version">v0.0.1</string>
 
     <!-- Navigation -->
     <string name="nav_album">Albums</string>
@@ -89,7 +89,5 @@
     <string name="made_with">Made with Jetpack Compose</string>
     <string name="github">GitHub</string>
     <string name="github_url">github.com/whitecodes/siren</string>
-    <string name="feature_love">Love</string>
-    <string name="feature_music">Music</string>
-    <string name="feature_quality">Quality</string>
+    <string name="links">Links</string>
 </resources>
