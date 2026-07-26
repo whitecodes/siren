@@ -35,6 +35,7 @@ jobs:
           STORE_PASS: ${{ secrets.SIREN_STORE_PASSWORD }}
           KEY_PASS: ${{ secrets.SIREN_KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.SIREN_KEY_ALIAS }}
+          KEYSTORE_B64: ${{ secrets.SIREN_KEYSTORE_BASE64 }}
         run: |
           cat > "$KEYSTORE_PROPS_PATH" <<EOF
           storeFile = release.jks
@@ -42,7 +43,7 @@ jobs:
           keyPassword = $KEY_PASS
           keyAlias = $KEY_ALIAS
           EOF
-          base64 -d > "$KEYSTORE_PATH" <<< "${{ secrets.SIREN_KEYSTORE_BASE64 }}"
+          base64 -d > "$KEYSTORE_PATH" <<< "$KEYSTORE_B64"
 
       - name: Debug verify keystore
         if: github.event_name == 'push'
