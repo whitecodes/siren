@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- "Play Latest" button on album list to start playing from newest album
+  - Builds playlist album-by-album up to 32 songs, newest album first
+  - Overshooting album is added in full (may slightly exceed 32)
+  - PlaylistBuilder accumulates lazily and stops fetching once limit is reached
 - "Play Album" button to play all songs in album
 - "Add Album to Playlist" button to add entire album to playlist
 - Chinese and English string resources for album actions

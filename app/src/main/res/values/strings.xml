@@ -23,6 +23,7 @@
     <string name="album_name">塞壬唱片</string>
     <string name="play_album">播放专辑</string>
     <string name="add_album_to_playlist">添加专辑到播放列表</string>
+    <string name="play_newest">播放最新</string>
 
     <!-- Player -->
     <string name="now_playing">正在播放</string>

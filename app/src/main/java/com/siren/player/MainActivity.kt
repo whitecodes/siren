@@ -77,6 +77,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.siren.player.data.PlaylistBuilder
 import com.siren.player.data.api.SirenApi
 import com.siren.player.player.MusicService
 import com.siren.player.player.PlayMode
@@ -147,6 +148,7 @@ class MainActivity : ComponentActivity() {
                     musicService = musicService,
                     onPlaySong = ::playSong,
                     onPlayAlbum = ::playAlbum,
+                    onPlayNewest = ::playLatest,
                     onLanguageChange = ::showLanguageChangeDialog
                 )
             }
@@ -230,6 +232,33 @@ class MainActivity : ComponentActivity() {
         }.start()
     }
 
+    private fun playLatest() {
+        val service = musicService ?: return
+        val db = (application as SirenApp).database
+        val repository = com.siren.player.data.repository.MusicRepository(application)
+        Thread {
+            // 专辑列表页顺序 = getAlbums() 缓存优先返回顺序，最新专辑在前
+            val albums = kotlinx.coroutines.runBlocking { repository.getAlbums() }
+            val songs = PlaylistBuilder.buildAlbumPlaylist(
+                albums.asSequence().map { album ->
+                    kotlinx.coroutines.runBlocking { repository.getAlbumSongs(album.cid) }
+                }
+            )
+            val urls = songs.mapNotNull { song ->
+                val detail = SirenApi.getSongDetail(song.cid) ?: return@mapNotNull null
+                val cachedPath = runBlocking { db.songDao().getLocalPath(song.cid) }
+                val url = cachedPath ?: detail.sourceUrl
+                url to detail.name
+            }
+            if (urls.isNotEmpty()) {
+                val coverUrl = albums.firstOrNull()?.coverUrl
+                runOnUiThread {
+                    service.play(urls, coverUrl = coverUrl)
+                }
+            }
+        }.start()
+    }
+
     private fun playAlbum(albumCid: String, coverUrl: String? = null) {
         val service = musicService ?: return
         val db = (application as SirenApp).database
@@ -257,6 +286,7 @@ fun SirenApp(
     musicService: MusicService?,
     onPlaySong: (String, String, String, String?) -> Unit,
     onPlayAlbum: (String, String?) -> Unit,
+    onPlayNewest: () -> Unit,
     onLanguageChange: (LanguageMode) -> Unit
 ) {
     val viewModel: SirenViewModel = viewModel()
@@ -409,6 +439,13 @@ fun SirenApp(
                     actions = {
                         if (currentNavItem == NavigationItem.Album) {
                             if (selectedAlbumCid == null) {
+                                IconButton(onClick = onPlayNewest) {
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        contentDescription = stringResource(R.string.play_newest),
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                                 IconButton(onClick = { showSearch = !showSearch }) {
                                     Icon(
                                         Icons.Default.Search,
