@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- "Exit" option in navigation drawer to stop music and quit the app
+  - Stops playback, removes media notification, unbinds service, exits activity
 - "Play Latest" button on album list to start playing from newest album
   - Builds playlist album-by-album up to 32 songs, newest album first
   - Overshooting album is added in full (may slightly exceed 32)

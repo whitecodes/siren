@@ -10,6 +10,7 @@
     <string name="nav_download_queue">下载队列</string>
     <string name="nav_settings">设置</string>
     <string name="nav_about">关于</string>
+    <string name="nav_exit">退出</string>
     <string name="menu">菜单</string>
     <string name="back">返回</string>
     <string name="refresh">刷新</string>

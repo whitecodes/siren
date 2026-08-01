@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
@@ -149,6 +150,7 @@ class MainActivity : ComponentActivity() {
                     onPlaySong = ::playSong,
                     onPlayAlbum = ::playAlbum,
                     onPlayNewest = ::playLatest,
+                    onExit = ::exitApp,
                     onLanguageChange = ::showLanguageChangeDialog
                 )
             }
@@ -232,6 +234,16 @@ class MainActivity : ComponentActivity() {
         }.start()
     }
 
+    private fun exitApp() {
+        musicService?.stopPlayback()
+        if (bound) {
+            unbindService(connection)
+            bound = false
+            musicService = null
+        }
+        finishAffinity()
+    }
+
     private fun playLatest() {
         val service = musicService ?: return
         val db = (application as SirenApp).database
@@ -287,6 +299,7 @@ fun SirenApp(
     onPlaySong: (String, String, String, String?) -> Unit,
     onPlayAlbum: (String, String?) -> Unit,
     onPlayNewest: () -> Unit,
+    onExit: () -> Unit,
     onLanguageChange: (LanguageMode) -> Unit
 ) {
     val viewModel: SirenViewModel = viewModel()
@@ -380,6 +393,15 @@ fun SirenApp(
                         shape = RoundedCornerShape(0.dp)
                     )
                 }
+                Spacer(modifier = Modifier.weight(1f))
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = stringResource(R.string.nav_exit)) },
+                    label = { Text(stringResource(R.string.nav_exit)) },
+                    selected = false,
+                    onClick = onExit,
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    shape = RoundedCornerShape(0.dp)
+                )
             }
         }
     ) {

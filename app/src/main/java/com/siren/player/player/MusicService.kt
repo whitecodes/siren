@@ -387,6 +387,16 @@ class MusicService : Service() {
         onTrackChange?.invoke()
     }
 
+    fun stopPlayback() {
+        val player = exoPlayer ?: return
+        player.stop()
+        player.clearMediaItems()
+        stopForeground(Service.STOP_FOREGROUND_REMOVE)
+        stopSelf()
+        onPlaybackStateChange?.invoke()
+        onTrackChange?.invoke()
+    }
+
     fun skipToIndex(index: Int) {
         val player = exoPlayer ?: return
         android.util.Log.d("SirenPlayer", "skipToIndex: index=$index, mediaItemCount=${player.mediaItemCount}, currentTitle=${player.currentMediaItem?.mediaMetadata?.title}")
