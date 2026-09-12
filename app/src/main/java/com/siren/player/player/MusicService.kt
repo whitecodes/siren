@@ -64,6 +64,9 @@ class MusicService : Service() {
                 }
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    // 自然播放结束自动切歌时播放状态保持 READY 不变，不会触发
+                    // onPlaybackStateChanged，需在此额外通知，否则正在播放页歌名不刷新
+                    onPlaybackStateChange?.invoke()
                     onTrackChange?.invoke()
                 }
 

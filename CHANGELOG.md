@@ -23,6 +23,9 @@ All notable changes to this project will be documented in this file.
 - Downloaded songs (via SAF) not playable after app restart
   - Call `takePersistableUriPermission()` when setting download URI
   - Ensures ExoPlayer can read `content://` URIs for SAF-stored files
+- Now Playing screen not updating the song title when the next track autoplays
+  - Natural track end keeps ExoPlayer in READY, so only `onMediaItemTransition` fires
+  - Notify the playback-state callback on media item transition as well
 
 ### Changed
 - Redesigned player screen with dynamic gradient background from album art
