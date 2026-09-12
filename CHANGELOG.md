@@ -8,8 +8,8 @@ All notable changes to this project will be documented in this file.
 - "Exit" option in navigation drawer to stop music and quit the app
   - Stops playback, removes media notification, unbinds service, exits activity
 - "Play Latest" button on album list to start playing from newest album
-  - Builds playlist album-by-album up to 32 songs, newest album first
-  - Overshooting album is added in full (may slightly exceed 32)
+  - Builds playlist album-by-album up to 8 songs, newest album first
+  - Overshooting album is added in full (may slightly exceed 8)
   - PlaylistBuilder accumulates lazily and stops fetching once limit is reached
 - "Play Album" button to play all songs in album
 - "Add Album to Playlist" button to add entire album to playlist

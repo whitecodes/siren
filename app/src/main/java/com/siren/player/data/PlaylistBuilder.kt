@@ -1,7 +1,7 @@
 package com.siren.player.data
 
 object PlaylistBuilder {
-    const val DEFAULT_LIMIT = 32
+    const val DEFAULT_LIMIT = 8
 
     /** 按专辑顺序累加整张专辑，直到累计 >= limit（越界专辑整张加入，可略超 limit）。 */
     fun <T> buildAlbumPlaylist(

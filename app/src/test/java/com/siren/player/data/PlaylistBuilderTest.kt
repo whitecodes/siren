@@ -64,7 +64,7 @@ class PlaylistBuilderTest {
     }
 
     @Test
-    fun defaultLimitIsThirtyTwo() {
-        assertEquals(32, PlaylistBuilder.DEFAULT_LIMIT)
+    fun defaultLimitIsEight() {
+        assertEquals(8, PlaylistBuilder.DEFAULT_LIMIT)
     }
 }
